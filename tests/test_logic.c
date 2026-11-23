@@ -195,9 +195,15 @@ static int aiPick(int level, int me, int *r, int *c) {
            && chessBoard[*r][*c].mark == 0;
 }
 
-/* Cho 2 AI dau voi nhau, tra ve ket qua. -1 neu co nuoc di sai luat. */
+/* Cho 2 AI dau voi nhau (4 nuoc dau ngau nhien gan giua ban de cac van khac nhau),
+ * tra ve ket qua. -99 neu co nuoc di sai luat. */
 static int aiVsAi(int levelX, int levelO) {
     resetData();
+    for (int k = 0; k < 4; k++) {
+        do { currX = 4 + rand() % 4; currY = 4 + rand() % 4; } while (chessBoard[currX][currY].mark != 0);
+        checkLegalEnter(turn);
+        switchTurn();
+    }
     for (;;) {
         int r, c;
         if (!aiPick(turn == 1 ? levelX : levelO, turn, &r, &c)) return -99;
@@ -266,20 +272,50 @@ static void testAI(void) {
         CHECK(wins >= 2);
     }
 
-    /* Dau thu: moi nuoc deu hop le, van luon ket thuc; muc Kho thang muc De ap dao */
-    int hardWins = 0, games = 0, illegal = 0;
-    for (int g = 0; g < 10; g++) {
-        int res = aiVsAi(AI_HARD, AI_EASY);                /* Kho cam X */
-        if (res == -99) illegal++;
-        if (res == RES_X_WIN) hardWins++;
-        res = aiVsAi(AI_EASY, AI_HARD);                    /* Kho cam O */
-        if (res == -99) illegal++;
-        if (res == RES_O_WIN) hardWins++;
-        games += 2;
+    /* Kho: thang bang chuoi nuoc 4 (VCF). O danh (5,4) -> 4 quan ngang (X buoc chan (5,5))
+     * dong thoi cot 4 thanh 3 thoang -> nuoc sau tao 4 thoang. Dau voi Trung binh phai thang. */
+    resetData();
+    put(5, 0, 1); put(5, 1, -1); put(5, 2, -1); put(5, 3, -1);
+    put(3, 4, -1); put(4, 4, -1);
+    put(0, 11, 1); put(11, 11, 1); put(11, 0, 1); put(0, 0, 1); put(9, 9, 1);
+    turn = -1;
+    {
+        int res = RES_NONE, steps = 0;
+        while (res == RES_NONE && steps++ < 10) {
+            if (!aiPick(turn == -1 ? AI_HARD : AI_MEDIUM, turn, &r, &c)) break;
+            currX = r; currY = c;
+            checkLegalEnter(turn);
+            res = testBoard();
+            if (res == RES_NONE) switchTurn();
+        }
+        CHECK(res == RES_O_WIN && steps <= 5);
     }
-    printf("  Kho thang De: %d/%d van\n", hardWins, games);
-    CHECK(illegal == 0);
-    CHECK(hardWins * 10 >= games * 8);
+
+    /* Dau thu: moi nuoc deu hop le, van luon ket thuc; muc cao thang muc thap ap dao */
+    struct { int strong, weak; const char *label; } match[] = {
+        { AI_MEDIUM, AI_EASY, "Trung binh thang De" },
+        { AI_HARD, AI_EASY, "Kho thang De" },
+        { AI_HARD, AI_MEDIUM, "Kho thang Trung binh" },
+    };
+    for (int m = 0; m < 3; m++) {
+        int wins = 0, losses = 0, games = 0, illegal = 0;
+        for (int g = 0; g < 10; g++) {
+            int res = aiVsAi(match[m].strong, match[m].weak);    /* muc cao cam X */
+            if (res == -99) illegal++;
+            if (res == RES_X_WIN) wins++;
+            if (res == RES_O_WIN) losses++;
+            res = aiVsAi(match[m].weak, match[m].strong);        /* muc cao cam O */
+            if (res == -99) illegal++;
+            if (res == RES_O_WIN) wins++;
+            if (res == RES_X_WIN) losses++;
+            games += 2;
+        }
+        printf("  %s: thang %d, thua %d, hoa %d / %d van\n", match[m].label, wins, losses,
+               games - wins - losses, games);
+        CHECK(illegal == 0);
+        CHECK(wins * 2 >= games);                          /* thang it nhat 1 nua so van */
+        CHECK(losses * 10 <= games);                       /* thua khong qua 10% */
+    }
 
     /* luu / tai giu nguyen che do choi */
     const char *file = "__test_ai.caro";

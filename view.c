@@ -339,7 +339,7 @@ void drawHelpLine(int y, const char *text) {
 }
 
 void drawMenu(const char *title, const char *const items[], int n, int sel) {
-    int w = 26, x = (SCREEN_W - w) / 2;
+    int w = 32, x = (SCREEN_W - w) / 2;     /* du rong cho "Choi voi may - Trung binh" */
     setColor(COLOR_TITLE, 0);
     printPad((SCREEN_W - (int)strlen(title)) / 2, 5, title, (int)strlen(title));
     for (int i = 0; i < n; i++) {

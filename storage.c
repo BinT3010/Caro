@@ -140,7 +140,7 @@ int listSaves(FileName *names, int max) {
  *   draws <n>
  *   elapsed <giay>
  *   cursor <dong> <cot>
- *   mode <0|1|2>        (0 = 2 nguoi, 1 = dau may De, 2 = dau may Kho;
+ *   mode <0..3>         (0 = 2 nguoi, 1 = may De, 2 = may Trung binh, 3 = may Kho;
  *                        file cu khong co dong nay -> coi la 2 nguoi)
  *   board
  *   <12 dong, moi dong 12 so: 0 trong, 1 = X, -1 = O>

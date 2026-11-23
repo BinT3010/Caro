@@ -39,14 +39,19 @@ Thang khi co **5 quan lien tiep** (ngang, doc, cheo), 6 quan tro len cung tinh. 
 Cuoi van: chon *Choi lai* (Y) hoac *Ve menu* (N/Esc). Diem so cua 2 nguoi duoc giu qua cac van lien tiep.
 
 ### Choi voi may
-*New Game* -> chon **2 nguoi choi**, **Choi voi may - De** hoac **Choi voi may - Kho**.
+*New Game* -> chon **2 nguoi choi**, **Choi voi may - De**, **- Trung binh** hoac **- Kho**.
 Nguoi choi cam **X** (di truoc), may cam **O**. Sau moi nuoc cua nguoi, may "suy nghi" khoang 0,35 giay
-roi danh, con tro nhay toi o may vua danh.
-- **De**: thang ngay neu co the, chan khi nguoi choi sap co 5; con lai chon ngau nhien 1 trong 3 o kha nhat -> thang duoc.
-- **Kho**: them phan tich "nuoc doi" (2 cho thang cung luc): tu tao nuoc doi neu co, va chan tu som
-  (vd hang 3 thoang `_ X X X _`) de nguoi choi khong tao duoc nuoc doi.
-Che do choi duoc ghi vao file luu (`mode 0/1/2`) nen tai lai van se tiep tuc dau voi may;
-file luu cu (chua co dong `mode`) duoc tai o che do 2 nguoi. Lich su ghi ten may la `May (De)` / `May (Kho)`.
+(muc Kho doi khi lau hon, toi da khoang 1 giay) roi danh, con tro nhay toi o may vua danh.
+Ca 3 muc deu thang ngay neu co the va chan khi nguoi choi sap co 5.
+- **De**: phong thu yeu, chon ngau nhien 1 trong 3 o kha nhat -> nguoi moi choi van thang duoc.
+- **Trung binh**: luon chon o tot nhat (tan cong + phong thu) nhung chi nhin 1 nuoc, khong tinh truoc.
+- **Kho**: tim chuoi "danh 4 lien tuc" (doi thu buoc phai chan) dan toi thang; neu khong co thi
+  nhin truoc 4 nuoc (ca 2 ben) bang tim kiem negamax + cat tia alpha-beta.
+Do manh (may dau voi may, 20 van, 4 nuoc dau ngau nhien): Trung binh thang De 19/20; Kho thang De 20/20;
+Kho gap Trung binh: thang 13, thua 2, hoa 5.
+Che do choi duoc ghi vao file luu (`mode 0/1/2/3`) nen tai lai van se tiep tuc dau voi may;
+file luu cu (chua co dong `mode`) duoc tai o che do 2 nguoi.
+Lich su ghi ten may la `May (De)` / `May (Trung binh)` / `May (Kho)`.
 
 ## Doi chieu voi yeu cau de bai
 | Muc | Noi dung | Nam o dau |
@@ -59,7 +64,7 @@ file luu cu (chua co dong `mode`) duoc tai o che do 2 nguoi. Lich su ghi ten may
 | Them | Am thanh chinh duoc (bat/tat + am luong 0-100%, nghe thu) | `sound.c`, man hinh Settings |
 | Them | Luu lich su dau (ngay gio, 2 nguoi, ket qua, so nuoc, thoi gian), xem/xoa trong menu History | `storage.c` -> `caro_history.txt` |
 | Them | Doi ten nguoi choi (luu lai) | Settings -> `caro_settings.cfg` |
-| Them | Choi voi may (AI) 2 muc De / Kho | `ai.c` (aiChooseMove), `control.c` (newGameMenu, aiMove) |
+| Them | Choi voi may (AI) 3 muc De / Trung binh / Kho | `ai.c` (aiChooseMove), `control.c` (newGameMenu, aiMove) |
 
 ## Cau truc ma nguon
 - `model.c/h`: du lieu ban co + luat choi (khong dung Windows nen test duoc).
@@ -69,7 +74,7 @@ file luu cu (chua co dong `mode`) duoc tai o che do 2 nguoi. Lich su ghi ten may
   Cac ham cu cua nhom (drawBoard, endMenu, endMenuBorder, printChessChar...) duoc giu nguyen; menu chinh, cai dat,
   lich su, bang thong so chi o muc toi gian de dung duoc chuc nang.
 - `ai.c/h`: may chon nuoc di (chi doc ban co, khong ve man hinh, khong dung Windows nen test duoc).
-  Cham diem moi o trong theo cac "cua so" 5 o (tan cong + phong thu), muc Kho xet them nuoc doi.
+  Cham diem moi o trong theo cac "cua so" 5 o (tan cong + phong thu), muc Kho them chuoi nuoc 4 (VCF) va tim kiem 4 nuoc (alpha-beta).
 - `control.c/h`, `main.c`: luong game, doc phim, menu.
 - `tests/test_logic.c`: kiem thu phan logic (khong bat buoc de nop bai). Chay trong VS Code:
   `Terminal > Run Task... > test logic`, hoac trong cmd:

@@ -248,9 +248,11 @@ static int finishMove(void) {
 /* Luot cua may. Tra ve ket qua van co (RES_NONE neu van tiep tuc). */
 static int aiMove(void) {
     showMessage("May dang suy nghi...", 8);
-    Sleep(AI_DELAY_MS);
+    DWORD start = GetTickCount();
     int r = 0, c = 0;
     if (!aiChooseMove(aiLevel, turn, &r, &c)) return RES_DRAW;   /* khong con o trong */
+    DWORD used = GetTickCount() - start;           /* muc Kho co the nghi lau hon */
+    if (used < AI_DELAY_MS) Sleep(AI_DELAY_MS - used);
     while (_kbhit()) _getch();                     /* bo cac phim bam trong luc may nghi */
     clearMessage();
     currX = r;
@@ -448,11 +450,13 @@ static void historyScreen(void) {
 
 /* New Game: chon che do choi. */
 static void newGameMenu(void) {
-    static const char *const items[] = { "2 nguoi choi", "Choi voi may - De", "Choi voi may - Kho", "Quay lai" };
-    switch (runMenu("NEW GAME", items, 4)) {
+    static const char *const items[] = { "2 nguoi choi", "Choi voi may - De", "Choi voi may - Trung binh",
+                                         "Choi voi may - Kho", "Quay lai" };
+    switch (runMenu("NEW GAME", items, 5)) {
         case 0: newGame(AI_NONE); break;
         case 1: newGame(AI_EASY); break;
-        case 2: newGame(AI_HARD); break;
+        case 2: newGame(AI_MEDIUM); break;
+        case 3: newGame(AI_HARD); break;
         default: break;                         /* Quay lai / Esc */
     }
 }
