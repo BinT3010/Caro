@@ -47,6 +47,7 @@ void drawTime(void);                  /* cap nhat rieng dong thoi gian */
 void showMessage(const char *msg, int color);
 void clearMessage(void);
 void printChessChar(int turn);        /* in X/O tai con tro */
+void eraseCell(int r, int c);         /* xoa quan tai o (r, c) - dung khi di lai */
 void winPlayer(int res);              /* dong chu thang/thua/hoa */
 void winEffect(int res);              /* hieu ung thang/hoa (muc 4.3) */
 void endMenu(int retryText, int retryBg, int exitText, int exitBg);

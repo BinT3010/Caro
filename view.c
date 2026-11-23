@@ -190,8 +190,19 @@ void drawHud(void) {
     printPad(x, HELP_Y + 1, "Enter: danh co", HUD_W);
     printPad(x, HELP_Y + 2, "L: luu van    T: tai van", HUD_W);
     printPad(x, HELP_Y + 3, "Esc: thoat ve menu", HUD_W);
+    if (aiLevel != AI_NONE) {                   /* di lai chi co khi choi voi may */
+        snprintf(buf, sizeof buf, "U: di lai (da dung %d lan)", undoCount);
+        printPad(x, HELP_Y + 4, buf, HUD_W);
+    } else {
+        printPad(x, HELP_Y + 4, "", HUD_W);
+    }
     setColor(7, 0);
     placeCursor();
+}
+
+/* Xoa quan tai o (r, c) tren man hinh (sau khi di lai). */
+void eraseCell(int r, int c) {
+    if (boardShown) drawCell(r, c, 0);
 }
 
 void drawGameScreen(void) {

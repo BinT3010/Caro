@@ -14,6 +14,12 @@ int lastX = -1, lastY = -1;
 int winCount;
 int winX[BOARD_SIZE], winY[BOARD_SIZE];
 Session session;
+int undoCount;
+
+/* Lich su nuoc di cua van hien tai (de di lai). Xoa khi bat dau van moi hoac tai van. */
+static struct { int r, c, mark; } hist[BOARD_SIZE * BOARD_SIZE];
+static int histLen;
+
 Settings settings = { 1, 60, { "Nguoi choi 1", "Nguoi choi 2" } };
 
 /* ---------------- dong ho ---------------- */
@@ -55,6 +61,8 @@ void resetData(void) {
     totalMoves = 0;
     lastX = lastY = -1;
     winCount = 0;
+    histLen = 0;
+    undoCount = 0;
     clockReset();
 }
 
@@ -78,6 +86,33 @@ int checkLegalEnter(int t) {
     totalMoves++;
     lastX = currX;
     lastY = currY;
+    if (histLen < BOARD_SIZE * BOARD_SIZE) {
+        hist[histLen].r = currX;
+        hist[histLen].c = currY;
+        hist[histLen].mark = t;
+        histLen++;
+    }
+    return 1;
+}
+
+/* ---------------- di lai ---------------- */
+int moveHistoryLength(void) { return histLen; }
+
+int lastMoveMark(void) { return histLen > 0 ? hist[histLen - 1].mark : 0; }
+
+int undoMove(int *r, int *c) {
+    if (histLen == 0) return 0;
+    histLen--;
+    int rr = hist[histLen].r, cc = hist[histLen].c, mark = hist[histLen].mark;
+    chessBoard[rr][cc].mark = 0;
+    moveCount[playerIndex(mark)]--;
+    totalMoves--;
+    turn = mark;                            /* nguoi vua bi xoa nuoc se danh lai */
+    winCount = 0;
+    if (histLen > 0) { lastX = hist[histLen - 1].r; lastY = hist[histLen - 1].c; }
+    else lastX = lastY = -1;
+    if (r) *r = rr;
+    if (c) *c = cc;
     return 1;
 }
 

@@ -33,6 +33,7 @@ Neu dung Windows Terminal moi (Win 11), viec tu dong doi kich thuoc cua so co th
 | Enter | Danh X / O (X di truoc) |
 | L | Luu van (nhap ten file, luon luu thanh `ten.caro`; khong cho dung ten CON, NUL, COM1...) |
 | T | Tai van (nhap ten file; co danh sach file da luu) |
+| U | Di lai - **chi khi choi voi may** (xoa nuoc cua may + nuoc cua ban, danh lai) |
 | Esc | Thoat ve menu (hoi co luu khong) |
 
 Thang khi co **5 quan lien tiep** (ngang, doc, cheo), 6 quan tro len cung tinh. Ban co day ma khong ai thang -> hoa.
@@ -53,6 +54,11 @@ Che do choi duoc ghi vao file luu (`mode 0/1/2/3`) nen tai lai van se tiep tuc d
 file luu cu (chua co dong `mode`) duoc tai o che do 2 nguoi.
 Lich su ghi ten may la `May (De)` / `May (Trung binh)` / `May (Kho)`.
 
+**Di lai (phim U)** - chi co khi choi voi may, che do 2 nguoi bam U se bao "Chi duoc di lai khi choi voi may!".
+Moi lan bam U xoa nuoc vua roi cua may **va** nuoc cua ban ngay truoc do, con tro ve dung o ban vua danh
+de ban danh lai. Bam nhieu lan de lui nhieu nuoc; khong gioi han so lan, bang thong so hien so lan da dung.
+Lich su nuoc di bat dau lai khi sang van moi hoac khi tai van tu file (chi lui duoc cac nuoc danh sau khi tai).
+
 ## Doi chieu voi yeu cau de bai
 | Muc | Noi dung | Nam o dau |
 |---|---|---|
@@ -65,6 +71,7 @@ Lich su ghi ten may la `May (De)` / `May (Trung binh)` / `May (Kho)`.
 | Them | Luu lich su dau (ngay gio, 2 nguoi, ket qua, so nuoc, thoi gian), xem/xoa trong menu History | `storage.c` -> `caro_history.txt` |
 | Them | Doi ten nguoi choi (luu lai) | Settings -> `caro_settings.cfg` |
 | Them | Choi voi may (AI) 3 muc De / Trung binh / Kho | `ai.c` (aiChooseMove), `control.c` (newGameMenu, aiMove) |
+| Them | Di lai (phim U), chi khi choi voi may | `model.c` (undoMove), `control.c` (undoVsAi) |
 
 ## Cau truc ma nguon
 - `model.c/h`: du lieu ban co + luat choi (khong dung Windows nen test duoc).
