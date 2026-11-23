@@ -1,6 +1,6 @@
 /* Kiem thu phan logic (model + storage + sound), KHONG can man hinh console.
  * Bien dich va chay tu thu muc du an:
- *   gcc -std=c99 -Wall -Wextra -I. tests/test_logic.c model.c storage.c sound.c -o test_logic.exe -lwinmm
+ *   gcc -std=c99 -Wall -Wextra -I. tests/test_logic.c model.c storage.c sound.c ai.c -o test_logic.exe -lwinmm
  *   test_logic.exe
  */
 #ifndef _CRT_SECURE_NO_WARNINGS
@@ -11,6 +11,8 @@
 #include "model.h"
 #include "storage.h"
 #include "sound.h"
+#include "ai.h"
+#include <stdlib.h>
 
 static int failed = 0, passed = 0;
 #define CHECK(cond) do { if (cond) passed++; else { failed++; \
@@ -184,12 +186,126 @@ static void testSound(void) {
     CHECK(soundRender(SND_COUNT, 50, wav, (int)sizeof wav) == 0);
 }
 
+/* Dat nhanh nhieu quan (khong can dung thu tu luot). */
+static void put(int r, int c, int t) { chessBoard[r][c].mark = t; totalMoves++; }
+
+static int aiPick(int level, int me, int *r, int *c) {
+    *r = *c = -1;
+    return aiChooseMove(level, me, r, c) && *r >= 0 && *r < BOARD_SIZE && *c >= 0 && *c < BOARD_SIZE
+           && chessBoard[*r][*c].mark == 0;
+}
+
+/* Cho 2 AI dau voi nhau, tra ve ket qua. -1 neu co nuoc di sai luat. */
+static int aiVsAi(int levelX, int levelO) {
+    resetData();
+    for (;;) {
+        int r, c;
+        if (!aiPick(turn == 1 ? levelX : levelO, turn, &r, &c)) return -99;
+        currX = r; currY = c;
+        if (!checkLegalEnter(turn)) return -99;
+        int res = testBoard();
+        if (res != RES_NONE) return res;
+        switchTurn();
+    }
+}
+
+static void testAI(void) {
+    printf("AI (choi voi may)\n");
+    int r, c;
+    srand(12345);
+
+    for (int level = AI_EASY; level <= AI_HARD; level++) {
+        /* ban trong: van chon duoc o hop le */
+        resetData();
+        CHECK(aiPick(level, -1, &r, &c));
+
+        /* may (O) co 4 quan -> phai danh thang ngay */
+        resetData();
+        for (int k = 3; k < 7; k++) put(3, k, -1);
+        put(8, 1, 1); put(8, 3, 1); put(9, 5, 1); put(10, 8, 1); put(0, 0, 1);
+        CHECK(aiPick(level, -1, &r, &c) && r == 3 && (c == 2 || c == 7));
+
+        /* nguoi (X) co 4 quan, may khong co cho thang -> phai chan */
+        resetData();
+        for (int k = 2; k < 6; k++) put(6, k, 1);
+        put(0, 0, -1); put(11, 11, -1); put(0, 11, -1);
+        CHECK(aiPick(level, -1, &r, &c) && r == 6 && (c == 1 || c == 6));
+
+        /* X co 4 quan bi chan 1 dau (O X X X X _) -> chan dung o con lai */
+        resetData();
+        put(2, 1, -1);
+        for (int k = 2; k < 6; k++) put(2, k, 1);
+        put(11, 0, -1); put(11, 11, -1);
+        CHECK(aiPick(level, -1, &r, &c) && r == 2 && c == 6);
+    }
+
+    /* Kho: X co hang 3 thoang (_ X X X _) -> phai chan sat 2 dau, khong de thanh 4 thoang */
+    for (int t = 0; t < 5; t++) {
+        resetData();
+        put(5, 4, 1); put(5, 5, 1); put(5, 6, 1);
+        put(0, 0, -1); put(11, 11, -1);
+        CHECK(aiPick(AI_HARD, -1, &r, &c) && r == 5 && (c == 3 || c == 7));
+    }
+
+    /* Kho: may co hang 3 thoang (_ O O O _) -> phai tao "nuoc doi" (4 thoang = 2 cho thang) */
+    resetData();
+    put(5, 4, -1); put(5, 5, -1); put(5, 6, -1);
+    put(0, 0, 1); put(0, 11, 1); put(11, 0, 1); put(11, 11, 1);
+    CHECK(aiPick(AI_HARD, -1, &r, &c));
+    chessBoard[r][c].mark = -1;
+    {
+        int wins = 0;
+        for (int i = 0; i < BOARD_SIZE; i++)
+            for (int j = 0; j < BOARD_SIZE; j++) {
+                if (chessBoard[i][j].mark != 0) continue;
+                chessBoard[i][j].mark = -1;
+                lastX = i; lastY = j;
+                if (checkWin(-1)) wins++;
+                chessBoard[i][j].mark = 0;
+            }
+        CHECK(wins >= 2);
+    }
+
+    /* Dau thu: moi nuoc deu hop le, van luon ket thuc; muc Kho thang muc De ap dao */
+    int hardWins = 0, games = 0, illegal = 0;
+    for (int g = 0; g < 10; g++) {
+        int res = aiVsAi(AI_HARD, AI_EASY);                /* Kho cam X */
+        if (res == -99) illegal++;
+        if (res == RES_X_WIN) hardWins++;
+        res = aiVsAi(AI_EASY, AI_HARD);                    /* Kho cam O */
+        if (res == -99) illegal++;
+        if (res == RES_O_WIN) hardWins++;
+        games += 2;
+    }
+    printf("  Kho thang De: %d/%d van\n", hardWins, games);
+    CHECK(illegal == 0);
+    CHECK(hardWins * 10 >= games * 8);
+
+    /* luu / tai giu nguyen che do choi */
+    const char *file = "__test_ai.caro";
+    resetSession();
+    resetData();
+    play(5, 5, 1);
+    aiLevel = AI_HARD;
+    CHECK(saveGame(file) == SAVE_OK);
+    aiLevel = AI_NONE;
+    CHECK(loadGame(file) == SAVE_OK && aiLevel == AI_HARD);
+    FILE *f = fopen(file, "w");
+    fprintf(f, "CARO-SAVE 1\nsize 12\np1 A\np2 B\nwins 0 0\ndraws 0\nelapsed 0\ncursor 0 0\nmode 5\nboard\n");
+    for (int i = 0; i < BOARD_SIZE; i++) fprintf(f, "0 0 0 0 0 0 0 0 0 0 0 0\n");
+    fclose(f);
+    CHECK(loadGame(file) == SAVE_ERR_FORMAT && aiLevel == AI_HARD);   /* file loi: khong doi che do */
+    remove(file);
+    aiLevel = AI_NONE;
+}
+
 int main(void) {
     testWinLines();
     testLoadState();
     testFileNames();
     testSaveLoad();
     testSound();
+    testAI();
     printf("\n%d dung, %d sai\n", passed, failed);
     return failed ? 1 : 0;
 }

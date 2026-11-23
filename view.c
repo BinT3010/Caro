@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "view.h"
+#include "ai.h"
 
 /* Mau: 0 den, 1 xanh duong, 2 xanh la, 3 xanh ngoc, 4 do, 5 tim, 6 vang, 7 trang,
  *      8 xam, 9..15 la ban sang cua 1..7 */
@@ -180,6 +181,8 @@ void drawHud(void) {
     setColor(7, 0);
     snprintf(buf, sizeof buf, "Hoa: %d    Tong so van: %d", session.draws, session.games);
     printPad(x, TOP + 12, buf, HUD_W);
+    setColor(8, 0);
+    printPad(x, TOP + 13, aiModeText(aiLevel), HUD_W);
     drawTime();
 
     setColor(8, 0);
@@ -222,6 +225,16 @@ void printChessChar(int t) {
 
 static void drawBanner(int res, int color) {
     char buf[100];
+    if (aiLevel != AI_NONE && res != RES_DRAW) {       /* dau voi may */
+        int aiWon = res == (AI_MARK == 1 ? RES_X_WIN : RES_O_WIN);
+        if (aiWon)
+            snprintf(buf, sizeof buf, "*** %s DA THANG! Thu lai nhe! ***", aiName(aiLevel));
+        else
+            snprintf(buf, sizeof buf, "*** CHUC MUNG %s DA THANG %s! ***",
+                     session.name[playerIndex(-AI_MARK)], aiName(aiLevel));
+        showMessage(buf, color);
+        return;
+    }
     switch (res) {
         case RES_X_WIN:
             snprintf(buf, sizeof buf, "*** CHUC MUNG %s (X) DA CHIEN THANG! ***", session.name[0]);

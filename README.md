@@ -38,6 +38,16 @@ Neu dung Windows Terminal moi (Win 11), viec tu dong doi kich thuoc cua so co th
 Thang khi co **5 quan lien tiep** (ngang, doc, cheo), 6 quan tro len cung tinh. Ban co day ma khong ai thang -> hoa.
 Cuoi van: chon *Choi lai* (Y) hoac *Ve menu* (N/Esc). Diem so cua 2 nguoi duoc giu qua cac van lien tiep.
 
+### Choi voi may
+*New Game* -> chon **2 nguoi choi**, **Choi voi may - De** hoac **Choi voi may - Kho**.
+Nguoi choi cam **X** (di truoc), may cam **O**. Sau moi nuoc cua nguoi, may "suy nghi" khoang 0,35 giay
+roi danh, con tro nhay toi o may vua danh.
+- **De**: thang ngay neu co the, chan khi nguoi choi sap co 5; con lai chon ngau nhien 1 trong 3 o kha nhat -> thang duoc.
+- **Kho**: them phan tich "nuoc doi" (2 cho thang cung luc): tu tao nuoc doi neu co, va chan tu som
+  (vd hang 3 thoang `_ X X X _`) de nguoi choi khong tao duoc nuoc doi.
+Che do choi duoc ghi vao file luu (`mode 0/1/2`) nen tai lai van se tiep tuc dau voi may;
+file luu cu (chua co dong `mode`) duoc tai o che do 2 nguoi. Lich su ghi ten may la `May (De)` / `May (Kho)`.
+
 ## Doi chieu voi yeu cau de bai
 | Muc | Noi dung | Nam o dau |
 |---|---|---|
@@ -49,6 +59,7 @@ Cuoi van: chon *Choi lai* (Y) hoac *Ve menu* (N/Esc). Diem so cua 2 nguoi duoc g
 | Them | Am thanh chinh duoc (bat/tat + am luong 0-100%, nghe thu) | `sound.c`, man hinh Settings |
 | Them | Luu lich su dau (ngay gio, 2 nguoi, ket qua, so nuoc, thoi gian), xem/xoa trong menu History | `storage.c` -> `caro_history.txt` |
 | Them | Doi ten nguoi choi (luu lai) | Settings -> `caro_settings.cfg` |
+| Them | Choi voi may (AI) 2 muc De / Kho | `ai.c` (aiChooseMove), `control.c` (newGameMenu, aiMove) |
 
 ## Cau truc ma nguon
 - `model.c/h`: du lieu ban co + luat choi (khong dung Windows nen test duoc).
@@ -57,10 +68,12 @@ Cuoi van: chon *Choi lai* (Y) hoac *Ve menu* (N/Esc). Diem so cua 2 nguoi duoc g
 - `view.c/h`: **toan bo phan ve man hinh**. Nhom tu thiet ke UI chi can sua file nay.
   Cac ham cu cua nhom (drawBoard, endMenu, endMenuBorder, printChessChar...) duoc giu nguyen; menu chinh, cai dat,
   lich su, bang thong so chi o muc toi gian de dung duoc chuc nang.
+- `ai.c/h`: may chon nuoc di (chi doc ban co, khong ve man hinh, khong dung Windows nen test duoc).
+  Cham diem moi o trong theo cac "cua so" 5 o (tan cong + phong thu), muc Kho xet them nuoc doi.
 - `control.c/h`, `main.c`: luong game, doc phim, menu.
 - `tests/test_logic.c`: kiem thu phan logic (khong bat buoc de nop bai). Chay trong VS Code:
   `Terminal > Run Task... > test logic`, hoac trong cmd:
-  `gcc -std=c99 -Wall -Wextra -I. tests/test_logic.c model.c storage.c sound.c -o test_logic.exe -lwinmm && test_logic.exe`
+  `gcc -std=c99 -Wall -Wextra -I. tests/test_logic.c model.c storage.c sound.c ai.c -o test_logic.exe -lwinmm && test_logic.exe`
 
 ## Khac voi code cu
 - Bo phim h/j/k/l de di chuyen (trung phim L = luu); con WASD va mui ten.

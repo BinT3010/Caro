@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.10)
 project(Caro C)
 
 set(CMAKE_C_STANDARD 99)
-add_executable(caro main.c control.c model.c storage.c sound.c view.c)
+add_executable(caro main.c control.c model.c storage.c sound.c view.c ai.c)
 target_link_libraries(caro winmm)   # am thanh (PlaySound)
 
 if(MSVC)

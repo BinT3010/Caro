@@ -7,6 +7,7 @@
 #include <ctype.h>
 #include <time.h>
 #include "storage.h"
+#include "ai.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -139,6 +140,8 @@ int listSaves(FileName *names, int max) {
  *   draws <n>
  *   elapsed <giay>
  *   cursor <dong> <cot>
+ *   mode <0|1|2>        (0 = 2 nguoi, 1 = dau may De, 2 = dau may Kho;
+ *                        file cu khong co dong nay -> coi la 2 nguoi)
  *   board
  *   <12 dong, moi dong 12 so: 0 trong, 1 = X, -1 = O>
  * Luot di va so nuoc di duoc suy ra tu ban co khi tai (nen khong the sai lech).
@@ -154,6 +157,7 @@ int saveGame(const char *file) {
     fprintf(f, "draws %d\n", session.draws);
     fprintf(f, "elapsed %d\n", clockElapsed());
     fprintf(f, "cursor %d %d\n", currX, currY);
+    fprintf(f, "mode %d\n", aiLevel);
     fprintf(f, "board\n");
     for (int i = 0; i < BOARD_SIZE; i++)
         for (int j = 0; j < BOARD_SIZE; j++)
@@ -167,7 +171,7 @@ int loadGame(const char *file) {
     if (!f) return SAVE_ERR_IO;
 
     char line[256];
-    int size = 0, elapsed = 0, cr = 0, cc = 0;
+    int size = 0, elapsed = 0, cr = 0, cc = 0, mode = AI_NONE;
     int marks[BOARD_SIZE][BOARD_SIZE];
     Session s;
     memset(&s, 0, sizeof s);
@@ -183,7 +187,12 @@ int loadGame(const char *file) {
     ok = ok && readLine(f, line, sizeof line) && sscanf(line, "draws %d", &s.draws) == 1;
     ok = ok && readLine(f, line, sizeof line) && sscanf(line, "elapsed %d", &elapsed) == 1;
     ok = ok && readLine(f, line, sizeof line) && sscanf(line, "cursor %d %d", &cr, &cc) == 2;
-    ok = ok && readLine(f, line, sizeof line) && strcmp(line, "board") == 0;
+    ok = ok && readLine(f, line, sizeof line);
+    if (ok && strncmp(line, "mode ", 5) == 0) {                /* dong "mode" la tuy chon */
+        ok = sscanf(line, "mode %d", &mode) == 1 && mode >= AI_NONE && mode <= AI_HARD;
+        ok = ok && readLine(f, line, sizeof line);
+    }
+    ok = ok && strcmp(line, "board") == 0;
     for (int i = 0; ok && i < BOARD_SIZE; i++) {
         ok = readLine(f, line, sizeof line);
         const char *p = line;
@@ -198,6 +207,7 @@ int loadGame(const char *file) {
     if (!ok) return SAVE_ERR_FORMAT;
     s.games = s.wins[0] + s.wins[1] + s.draws;
     if (loadState(marks, cr, cc, &s, elapsed) != 0) return SAVE_ERR_FORMAT;
+    aiLevel = mode;                 /* chi doi che do khi tai thanh cong */
     return SAVE_OK;
 }
 
