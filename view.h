@@ -9,6 +9,7 @@
  *     currPosHighlight.
  *   - Cac man hinh moi (HUD, menu chinh, cai dat, lich su) o muc TOI GIAN,
  *     chi du de dung duoc chuc nang.
+ *   - O dang chon tren ban co duoc to nen sang (placeCursor -> currPosHighlight).
  */
 
 #define SCREEN_W 90
@@ -16,8 +17,17 @@
 #define MSG_Y (TOP + 2 * BOARD_SIZE + 1)     /* dong thong bao duoi ban co */
 #define PROMPT_Y (MSG_Y + 2)                 /* dong nhap lieu */
 #define PANEL_X (LEFT + 4 * BOARD_SIZE + 4)  /* cot bat dau bang thong so ben phai */
+#define HUD_W 34                             /* chieu rong bang thong so (PANEL_X + HUD_W < SCREEN_W) */
+#define HELP_Y (TOP + 16)                    /* 4 dong huong dan phim trong bang thong so */
 #define HISTORY_ROWS 18                      /* so dong lich su moi trang */
 #define SETTINGS_ITEMS 6
+
+/* Danh sach file da luu: tieu de + SAVE_LIST_ROWS ten + 1 dong "con N file" */
+#define SAVE_LIST_ROWS 8
+#define SAVE_LIST_W 30
+/* Trong van choi: danh sach file hien tam o cot ben phai (de len phan huong dan phim),
+ * tu dong TOP+15 den MSG_Y-1, KHONG de len dong thong bao / dong nhap lieu. */
+#define GAME_LIST_Y (TOP + 15)
 
 /* ---- co ban ---- */
 void goToXY(int x, int y);
@@ -48,6 +58,8 @@ void drawMenu(const char *title, const char *const items[], int n, int sel);
 void drawSettings(int sel);
 void drawHistory(int offset);
 void drawInputField(int x, int y, const char *label, const char *text);
+void clearInputField(int x, int y);
 void clearRegion(int x, int y, int w, int h);
 void drawSaveList(int x, int y, FileName *names, int n);
+void clearSaveList(int x, int y);
 void drawHelpLine(int y, const char *text);

@@ -1,0 +1,29 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build caro",
+            "type": "shell",
+            "command": "gcc",
+            "args": [
+                "-std=c99", "-Wall", "-Wextra", "-g",
+                "main.c", "control.c", "model.c", "storage.c", "sound.c", "view.c",
+                "-o", "caro.exe", "-lwinmm"
+            ],
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": ["$gcc"],
+            "group": { "kind": "build", "isDefault": true }
+        },
+        {
+            "label": "test logic",
+            "type": "shell",
+            "command": "gcc -std=c99 -Wall -Wextra -I. tests/test_logic.c model.c storage.c sound.c -o test_logic.exe -lwinmm && test_logic.exe",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "shell": { "executable": "cmd.exe", "args": ["/d", "/c"] }
+            },
+            "problemMatcher": ["$gcc"],
+            "group": "test"
+        }
+    ]
+}

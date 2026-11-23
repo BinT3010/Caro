@@ -110,7 +110,11 @@ static int promptSave(int listX, int listY, int promptY) {
         if (!readText(3, promptY, "Nhap ten file de luu (Esc: huy): ", name, FILE_BASE_MAX + 1, TEXT_FILE)
             || name[0] == '\0')
             break;
-        normalizeFileName(name, sizeof name);
+        if (!normalizeFileName(name, sizeof name)) {
+            showMessage("Ten file khong hop le! (khong dung CON, NUL, COM1...; khong bat dau bang '.')", 12);
+            soundPlay(SND_ERROR);
+            continue;
+        }
         if (fileExists(name)) {
             showCursor(0);
             if (!confirm("File da ton tai. Ghi de? (Y/N)")) { showCursor(1); continue; }
@@ -128,8 +132,8 @@ static int promptSave(int listX, int listY, int promptY) {
         showMessage("Khong ghi duoc file! Thu ten khac.", 12);
         soundPlay(SND_ERROR);
     }
-    clearRegion(3, promptY, 70, 1);
-    clearRegion(listX, listY, 30, 8);
+    clearInputField(3, promptY);
+    clearSaveList(listX, listY);
     return saved;
 }
 
@@ -144,7 +148,11 @@ static int promptLoad(int listX, int listY, int promptY) {
         if (!readText(3, promptY, "Nhap ten file can tai (Esc: huy): ", name, FILE_BASE_MAX + 1, TEXT_FILE)
             || name[0] == '\0')
             break;
-        normalizeFileName(name, sizeof name);
+        if (!normalizeFileName(name, sizeof name)) {
+            showMessage("Ten file khong hop le!", 12);
+            soundPlay(SND_ERROR);
+            continue;
+        }
         int r = loadGame(name);
         if (r == SAVE_OK) {
             char msg[100];
@@ -158,8 +166,8 @@ static int promptLoad(int listX, int listY, int promptY) {
                                      : "File khong hop le hoac da bi sua hong!", 12);
         soundPlay(SND_ERROR);
     }
-    clearRegion(3, promptY, 70, 1);
-    clearRegion(listX, listY, 30, 8);
+    clearInputField(3, promptY);
+    clearSaveList(listX, listY);
     return loaded;
 }
 
@@ -217,7 +225,7 @@ static int askLeave(void) {
     int c = toupper(_getch());
     if (c == 0 || c == 224) _getch();
     clearMessage();
-    if (c == 'Y') return promptSave(PANEL_X, TOP + 21, PROMPT_Y);
+    if (c == 'Y') return promptSave(PANEL_X, GAME_LIST_Y, PROMPT_Y);
     return c == 'N';
 }
 
@@ -248,7 +256,8 @@ static int gameLoop(void) {
 
             case 'L':                                   /* luu van */
                 clockStop();
-                promptSave(PANEL_X, TOP + 21, PROMPT_Y);
+                promptSave(PANEL_X, GAME_LIST_Y, PROMPT_Y);
+                drawHud();                              /* ve lai phan huong dan bi danh sach file de len */
                 showCursor(1);
                 placeCursor();
                 clockStart();
@@ -256,9 +265,11 @@ static int gameLoop(void) {
 
             case 'T':                                   /* tai van */
                 clockStop();
-                if (promptLoad(PANEL_X, TOP + 21, PROMPT_Y)) {
+                if (promptLoad(PANEL_X, GAME_LIST_Y, PROMPT_Y)) {
                     drawGameScreen();
                     showMessage("Da tai van co. Tiep tuc choi!", 10);
+                } else {
+                    drawHud();
                 }
                 showCursor(1);
                 placeCursor();
@@ -268,6 +279,8 @@ static int gameLoop(void) {
             case KEY_ESC:
                 clockStop();
                 if (askLeave()) return PLAY_MENU;
+                drawHud();                              /* co the da hien danh sach file khi chon Y roi huy */
+                showCursor(1);
                 placeCursor();
                 clockStart();
                 break;
@@ -355,14 +368,14 @@ static void settingsScreen(void) {
         }
         else if (key == KEY_ENTER) {
             if (sel == 0) toggleSound();
-            else if (sel == 1) adjustVolume(10);
+            else if (sel == 1) adjustVolume(settings.volume >= 100 ? -100 : 10);  /* 100% -> quay ve 0% */
             else if (sel == 2 || sel == 3) {
                 char buf[NAME_LEN];
                 int who = sel - 2;
                 if (readText(20, 9 + 2 * SETTINGS_ITEMS + 1, "Nhap ten moi (Enter: giu nguyen): ", buf, NAME_LEN, TEXT_NAME)
                     && buf[0] != '\0')
                     sanitizeName(settings.name[who], buf);
-                clearRegion(20, 9 + 2 * SETTINGS_ITEMS + 1, 70, 1);
+                clearInputField(20, 9 + 2 * SETTINGS_ITEMS + 1);
                 showCursor(0);
             }
             else if (sel == 4) soundPlay(SND_WIN);

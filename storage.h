@@ -1,4 +1,5 @@
 #pragma once
+#include <stddef.h>   /* size_t */
 #include "model.h"
 /* ===================== STORAGE: doc/ghi tap tin =====================
  * - Luu / tai van co dang choi (phim L / T)
@@ -21,7 +22,9 @@ typedef char FileName[FILE_NAME_LEN];
 
 /* ---- ten file ---- */
 void sanitizeName(char *dst, const char *src);     /* ten nguoi choi hop le, khong rong */
-void normalizeFileName(char *name, size_t cap);    /* them duoi .caro neu chua co */
+/* Dam bao ten ket thuc bang .caro (them neu thieu). Tra ve 0 neu ten khong hop le
+ * (rong, bat dau bang '.', ten thiet bi Windows nhu CON/NUL/COM1, qua dai). */
+int  normalizeFileName(char *name, size_t cap);
 int  fileExists(const char *name);
 
 /* ---- luu / tai van ---- */

@@ -44,9 +44,48 @@ void sanitizeName(char *dst, const char *src) {
     else snprintf(dst, NAME_LEN, "%s", tmp + a);
 }
 
-void normalizeFileName(char *name, size_t cap) {
-    if (strchr(name, '.') == NULL && strlen(name) + strlen(SAVE_EXT) < cap)
+/* So sanh khong phan biet hoa/thuong (Windows khong phan biet ten file). */
+static int sameNoCase(const char *a, const char *b, size_t n) {
+    for (size_t i = 0; i < n; i++) {
+        int ca = tolower((unsigned char)a[i]), cb = tolower((unsigned char)b[i]);
+        if (ca != cb) return 0;
+        if (ca == '\0') return 1;
+    }
+    return 1;
+}
+
+static int hasSaveExt(const char *name) {
+    size_t len = strlen(name), ext = strlen(SAVE_EXT);
+    return len > ext && sameNoCase(name + len - ext, SAVE_EXT, ext + 1);
+}
+
+/* Ten thiet bi cua Windows (CON, NUL, COM1...) khong duoc dung lam ten file. */
+static int reservedBase(const char *name) {
+    static const char *const R[] = { "CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$" };
+    char base[FILE_NAME_LEN];
+    size_t n = 0;
+    while (name[n] && name[n] != '.' && n < sizeof base - 1) { base[n] = name[n]; n++; }
+    base[n] = '\0';
+    for (size_t k = 0; k < sizeof R / sizeof R[0]; k++)
+        if (strlen(R[k]) == n && sameNoCase(base, R[k], n)) return 1;
+    if (n == 4 && (sameNoCase(base, "COM", 3) || sameNoCase(base, "LPT", 3)) && isdigit((unsigned char)base[3]))
+        return 1;
+    return 0;
+}
+
+int normalizeFileName(char *name, size_t cap) {
+    /* Bo khoang trang / dau cham o cuoi (Windows tu cat di, de gay nham ten) */
+    size_t len = strlen(name);
+    while (len > 0 && (name[len - 1] == '.' || name[len - 1] == ' ')) name[--len] = '\0';
+    /* Luon ket thuc bang .caro de khong the ghi de file khac (vd: caro_settings.cfg) */
+    if (!hasSaveExt(name)) {
+        if (len + strlen(SAVE_EXT) + 1 > cap) return 0;
         strcat(name, SAVE_EXT);
+    }
+    if (strlen(name) <= strlen(SAVE_EXT)) return 0;  /* chi co ".caro" */
+    if (name[0] == '.') return 0;                     /* file an / ten rong */
+    if (reservedBase(name)) return 0;
+    return 1;
 }
 
 int fileExists(const char *name) {
@@ -67,7 +106,8 @@ int listSaves(FileName *names, int max) {
     HANDLE h = FindFirstFileA("*" SAVE_EXT, &fd);
     if (h == INVALID_HANDLE_VALUE) return 0;
     do {
-        if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) &&
+        /* kiem tra lai duoi file: mau "*.caro" cua Windows co the khop ca ten 8.3 */
+        if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) && hasSaveExt(fd.cFileName) &&
             strlen(fd.cFileName) < FILE_NAME_LEN && n < max) {
             snprintf(names[n++], FILE_NAME_LEN, "%s", fd.cFileName);
         }
@@ -80,7 +120,7 @@ int listSaves(FileName *names, int max) {
     struct dirent *e;
     while ((e = readdir(d)) != NULL) {
         size_t len = strlen(e->d_name);
-        if (len > ext && len < FILE_NAME_LEN && strcmp(e->d_name + len - ext, SAVE_EXT) == 0 && n < max)
+        if (len > ext && len < FILE_NAME_LEN && hasSaveExt(e->d_name) && n < max)
             snprintf(names[n++], FILE_NAME_LEN, "%s", e->d_name);
     }
     closedir(d);

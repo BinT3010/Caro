@@ -12,9 +12,15 @@
 #define COLOR_O 1
 #define COLOR_TITLE 14
 #define COLOR_HILITE_BG 11
+#define COLOR_CURSOR_BG 7   /* nen cua o dang chon */
 
 static int markColor(int mark) { return mark == 1 ? COLOR_X : COLOR_O; }
 static char markChar(int mark) { return mark == 1 ? 'X' : 'O'; }
+
+/* Trang thai to sang o dang chon. boardShown = 0 khi man hinh khong phai ban co
+ * (menu, lich su...) de placeCursor khong ve len cac man hinh do. */
+static int boardShown = 0;
+static int hlRow = -1, hlCol = -1;
 
 /* ================= co ban ================= */
 void goToXY(int x, int y) {
@@ -32,6 +38,8 @@ void clearScreen(void) {
     CONSOLE_SCREEN_BUFFER_INFO csbi;
     DWORD written;
     COORD origin = { 0, 0 };
+    boardShown = 0;
+    hlRow = hlCol = -1;
     setColor(7, 0);
     if (!GetConsoleScreenBufferInfo(h, &csbi)) return;
     DWORD size = (DWORD)csbi.dwSize.X * (DWORD)csbi.dwSize.Y;
@@ -94,8 +102,39 @@ void drawMarks(void) {
     setColor(7, 0);
 }
 
+/* Ve lai phan trong cua 1 o (3 ky tu giua 2 vach '|'), to nen neu dang chon. */
+static void drawCell(int i, int j, int highlighted) {
+    goToXY(chessBoard[i][j].X - 1, chessBoard[i][j].Y);
+    if (highlighted) {
+        setColor(0, COLOR_CURSOR_BG);
+        printf(" ");
+        currPosHighlight(chessBoard[i][j].mark);
+        setColor(0, COLOR_CURSOR_BG);
+        printf(" ");
+    } else {
+        int mark = chessBoard[i][j].mark;
+        setColor(mark != 0 ? markColor(mark) : 7, 0);
+        printf(" %c ", mark != 0 ? markChar(mark) : ' ');
+    }
+    setColor(7, 0);
+}
+
+/* Dua con tro ve o hien hanh va to sang o do (bo to sang o cu). */
 void placeCursor(void) {
+    if (boardShown) {
+        if (hlRow >= 0 && (hlRow != currX || hlCol != currY))
+            drawCell(hlRow, hlCol, 0);
+        drawCell(currX, currY, 1);
+        hlRow = currX;
+        hlCol = currY;
+    }
     goToXY(chessBoard[currX][currY].X, chessBoard[currX][currY].Y);
+}
+
+/* Bo to sang o dang chon (dung truoc hieu ung thang/menu cuoi van). */
+static void hideHighlight(void) {
+    if (boardShown && hlRow >= 0) drawCell(hlRow, hlCol, 0);
+    hlRow = hlCol = -1;
 }
 
 static void printPad(int x, int y, const char *s, int width) {
@@ -108,7 +147,7 @@ void drawTime(void) {
     int s = clockElapsed();
     snprintf(buf, sizeof buf, "Thoi gian : %02d:%02d", s / 60, s % 60);
     setColor(7, 0);
-    printPad(PANEL_X, TOP + 14, buf, 30);
+    printPad(PANEL_X, TOP + 14, buf, HUD_W);
     placeCursor();
 }
 
@@ -117,37 +156,37 @@ void drawHud(void) {
     int x = PANEL_X;
 
     setColor(COLOR_TITLE, 0);
-    printPad(x, TOP, "======== CARO ========", 30);
+    printPad(x, TOP, "======== CARO ========", HUD_W);
 
     int p = playerIndex(turn);
     setColor(markColor(turn), 0);
     snprintf(buf, sizeof buf, "Luot choi: %c (%s)", markChar(turn), session.name[p]);
-    printPad(x, TOP + 2, buf, 30);
+    printPad(x, TOP + 2, buf, HUD_W);
 
     for (int k = 0; k < 2; k++) {
         int mark = k == 0 ? 1 : -1;
         int y = TOP + 4 + k * 4;
         setColor(markColor(mark), 0);
         snprintf(buf, sizeof buf, "%c [%c] %s", turn == mark ? '>' : ' ', markChar(mark), session.name[k]);
-        printPad(x, y, buf, 30);
+        printPad(x, y, buf, HUD_W);
         setColor(7, 0);
         snprintf(buf, sizeof buf, "    Nuoc di: %d", moveCount[k]);
-        printPad(x, y + 1, buf, 30);
+        printPad(x, y + 1, buf, HUD_W);
         snprintf(buf, sizeof buf, "    Thang: %d   Thua: %d", session.wins[k],
                  session.games - session.wins[k] - session.draws);
-        printPad(x, y + 2, buf, 30);
+        printPad(x, y + 2, buf, HUD_W);
     }
 
     setColor(7, 0);
     snprintf(buf, sizeof buf, "Hoa: %d    Tong so van: %d", session.draws, session.games);
-    printPad(x, TOP + 12, buf, 30);
+    printPad(x, TOP + 12, buf, HUD_W);
     drawTime();
 
     setColor(8, 0);
-    printPad(x, TOP + 16, "W/A/S/D hoac phim mui ten: di chuyen", 34);
-    printPad(x, TOP + 17, "Enter: danh co", 34);
-    printPad(x, TOP + 18, "L: luu van    T: tai van", 34);
-    printPad(x, TOP + 19, "Esc: thoat ve menu", 34);
+    printPad(x, HELP_Y, "W/A/S/D hoac phim mui ten: di chuyen", HUD_W);
+    printPad(x, HELP_Y + 1, "Enter: danh co", HUD_W);
+    printPad(x, HELP_Y + 2, "L: luu van    T: tai van", HUD_W);
+    printPad(x, HELP_Y + 3, "Esc: thoat ve menu", HUD_W);
     setColor(7, 0);
     placeCursor();
 }
@@ -157,7 +196,8 @@ void drawGameScreen(void) {
     clearScreen();
     drawBoard();
     drawMarks();
-    drawHud();
+    boardShown = 1;
+    drawHud();          /* drawHud -> placeCursor: to sang o dang chon */
 }
 
 void showMessage(const char *msg, int color) {
@@ -172,6 +212,8 @@ void clearMessage(void) {
 }
 
 void printChessChar(int t) {
+    /* Di toi dung o hien hanh truoc khi in, khong phu thuoc vi tri con tro console */
+    goToXY(chessBoard[currX][currY].X, chessBoard[currX][currY].Y);
     setColor(markColor(t), 0);
     printf("%c", markChar(t));
     setColor(7, 0);
@@ -199,6 +241,7 @@ void winPlayer(int res) {
 
 /* Hieu ung: chop sang day quan thang + doi mau dong chuc mung + (am thanh do control phat) */
 void winEffect(int res) {
+    hideHighlight();    /* khong de o dang chon de len day quan thang */
     if (res == RES_DRAW) {
         for (int k = 0; k < 6; k++) {
             int on = k % 2 == 0;
@@ -223,7 +266,9 @@ void winEffect(int res) {
         drawBanner(res, 14);
     }
     setColor(7, 0);
-    placeCursor();
+    /* Chi dua con tro ve o, khong to sang lai (van da ket thuc) */
+    boardShown = 0;
+    goToXY(chessBoard[currX][currY].X, chessBoard[currX][currY].Y);
 }
 
 /* Menu ket thuc van (giu nguyen thiet ke cu): dong 5 = "Choi lai", dong 6 = "Ve menu" */
@@ -255,20 +300,15 @@ void endMenuBorder(int row) {
     printf(" ");
 }
 
+/* In ky tu cua o dang chon (tai vi tri con tro hien tai) tren nen sang.
+ * Mau quan giong mau tren ban co (truoc day O bi in mau xanh la, khong khop). */
 void currPosHighlight(int mark) {
     if (mark == 0) {
-        setColor(0, 7);
+        setColor(0, COLOR_CURSOR_BG);
         printf(" ");
     } else {
-        switch (mark) {
-            case 1:
-                setColor(4, 7);
-                printf("X");
-                break;
-            default:
-                setColor(2, 7);
-                printf("O");
-        }
+        setColor(markColor(mark), COLOR_CURSOR_BG);
+        printf("%c", markChar(mark));
     }
 }
 
@@ -360,22 +400,39 @@ void drawHistory(int offset) {
     setColor(7, 0);
 }
 
+/* O nhap lieu: dung het chieu rong con lai cua man hinh, de nhan + ten dai
+ * khong bi cat va con tro khong chay ra ngoai phan da in. */
 void drawInputField(int x, int y, const char *label, const char *text) {
-    char buf[100];
+    char buf[160];
+    int width = SCREEN_W - x - 1;
     snprintf(buf, sizeof buf, "%s%s", label, text);
     setColor(7, 0);
-    printPad(x, y, buf, 60);
-    goToXY(x + (int)strlen(buf), y);
+    printPad(x, y, buf, width);
+    int len = (int)strlen(buf);
+    goToXY(x + (len < width ? len : width - 1), y);
 }
 
+void clearInputField(int x, int y) {
+    clearRegion(x, y, SCREEN_W - x - 1, 1);
+}
+
+/* Danh sach file da luu: 1 dong tieu de + SAVE_LIST_ROWS dong ten + 1 dong "con N file". */
 void drawSaveList(int x, int y, FileName *names, int n) {
+    char buf[64];
     setColor(11, 0);
-    printPad(x, y, n > 0 ? "File da luu:" : "(Chua co file luu nao)", 30);
+    printPad(x, y, n > 0 ? "File da luu:" : "(Chua co file luu nao)", SAVE_LIST_W);
     setColor(7, 0);
-    for (int k = 0; k < 6; k++) {
-        char buf[64];
+    for (int k = 0; k < SAVE_LIST_ROWS; k++) {
         snprintf(buf, sizeof buf, "  %s", k < n ? names[k] : "");
-        printPad(x, y + 1 + k, buf, 30);
+        printPad(x, y + 1 + k, buf, SAVE_LIST_W);
     }
-    if (n > 6) { setColor(8, 0); printPad(x, y + 7, "  ...", 30); setColor(7, 0); }
+    setColor(8, 0);
+    if (n > SAVE_LIST_ROWS) snprintf(buf, sizeof buf, "  ... va %d file khac", n - SAVE_LIST_ROWS);
+    else buf[0] = '\0';
+    printPad(x, y + 1 + SAVE_LIST_ROWS, buf, SAVE_LIST_W);
+    setColor(7, 0);
+}
+
+void clearSaveList(int x, int y) {
+    clearRegion(x, y, SAVE_LIST_W, SAVE_LIST_ROWS + 2);
 }

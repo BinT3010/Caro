@@ -7,11 +7,14 @@ Viet bang **C thuan (C99)**, mo hinh Model - View - Control, chay tren Windows c
 **Quan trong:** phai chay trong cua so console that (cmd / Windows Terminal / PowerShell), khong chay trong o "Debug Console" cua VS Code.
 Chuong trinh can lien ket thu vien `winmm` (am thanh).
 
+`caro.exe` **khong** nam trong repo (da khai bao trong `.gitignore`), moi thanh vien tu bien dich tren may minh.
+
 ### VS Code
-1. Cai MinGW-w64 (gcc) va extension *C/C++*.
-2. Mo thu muc du an -> `Ctrl+Shift+B` (task "build caro") -> mo terminal, go `caro.exe`.
-   Hoac bam F5 (cau hinh san trong `.vscode/launch.json`, mo cua so console rieng).
+1. Cai MinGW-w64 (gcc, gdb) va extension *C/C++*.
+2. Mo thu muc du an -> `Ctrl+Shift+B` (task "build caro", cau hinh trong `.vscode/tasks.json`) -> mo terminal, go `.\caro.exe`.
+   Hoac bam F5 (cau hinh san trong `.vscode/launch.json`: tu build roi mo cua so console rieng).
 3. Cach khac: cai extension *CMake Tools*, chon kit va bam Build/Run (da co `CMakeLists.txt`).
+4. Khong dung VS Code: chay `build.bat` (MinGW) trong cmd.
 
 ### Visual Studio
 - **Cach 1 (de nhat):** `File > Open > Folder...` chon thu muc du an (co `CMakeLists.txt`) -> chon target `caro.exe` -> `Ctrl+F5`.
@@ -26,9 +29,9 @@ Neu dung Windows Terminal moi (Win 11), viec tu dong doi kich thuoc cua so co th
 ## Cach choi
 | Phim | Tac dung |
 |---|---|
-| W / A / S / D (hoac mui ten) | Di chuyen |
+| W / A / S / D (hoac mui ten) | Di chuyen (o dang chon duoc to nen sang) |
 | Enter | Danh X / O (X di truoc) |
-| L | Luu van (nhap ten file, luu thanh `ten.caro`) |
+| L | Luu van (nhap ten file, luon luu thanh `ten.caro`; khong cho dung ten CON, NUL, COM1...) |
 | T | Tai van (nhap ten file; co danh sach file da luu) |
 | Esc | Thoat ve menu (hoi co luu khong) |
 
@@ -55,7 +58,9 @@ Cuoi van: chon *Choi lai* (Y) hoac *Ve menu* (N/Esc). Diem so cua 2 nguoi duoc g
   Cac ham cu cua nhom (drawBoard, endMenu, endMenuBorder, printChessChar...) duoc giu nguyen; menu chinh, cai dat,
   lich su, bang thong so chi o muc toi gian de dung duoc chuc nang.
 - `control.c/h`, `main.c`: luong game, doc phim, menu.
-- `tests/test_logic.c`: kiem thu phan logic (khong bat buoc de nop bai).
+- `tests/test_logic.c`: kiem thu phan logic (khong bat buoc de nop bai). Chay trong VS Code:
+  `Terminal > Run Task... > test logic`, hoac trong cmd:
+  `gcc -std=c99 -Wall -Wextra -I. tests/test_logic.c model.c storage.c sound.c -o test_logic.exe -lwinmm && test_logic.exe`
 
 ## Khac voi code cu
 - Bo phim h/j/k/l de di chuyen (trung phim L = luu); con WASD va mui ten.
@@ -63,5 +68,8 @@ Cuoi van: chon *Choi lai* (Y) hoac *Ve menu* (N/Esc). Diem so cua 2 nguoi duoc g
 - Dung hang `BOARD_SIZE`, `LEFT`, `TOP` nhu huong dan.
 - Bo tham so mac dinh trong khai bao ham (khong hop le trong C) -> truyen tham so ro rang.
 
+- Dung lai ham `currPosHighlight` de to sang o dang chon (mau quan O da sua cho khop voi ban co).
+
 ## File duoc tao ra khi chay
 `*.caro` (van da luu), `caro_history.txt` (lich su), `caro_settings.cfg` (cai dat). Co the mo bang Notepad.
+Cac file nay rieng cho tung may nen khong dua len git (xem `.gitignore`).

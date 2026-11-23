@@ -1,0 +1,15 @@
+# File bien dich
+*.exe
+*.o
+*.obj
+*.pdb
+*.ilk
+build/
+out/
+.vs/
+CMakeSettings.json
+
+# File duoc tao ra khi choi (moi may mot khac)
+*.caro
+caro_history.txt
+caro_settings.cfg
