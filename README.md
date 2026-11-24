@@ -101,6 +101,9 @@ Lich su nuoc di bat dau lai khi sang van moi hoac khi tai van tu file (chi lui d
 - `tests/test_logic.c`: kiem thu phan logic (khong bat buoc de nop bai). Chay trong VS Code:
   `Terminal > Run Task... > test logic`, hoac trong cmd:
   `gcc -std=c99 -Wall -Wextra -I. tests/test_logic.c model.c storage.c sound.c ai.c -o test_logic.exe -lwinmm && test_logic.exe`
+- `tests/ui_test.c`: kiem thu **giao dien** tu dong - tu mo cua so game, bam phim nhu nguoi choi va doc lai
+  man hinh de kiem tra 62 diem (menu, danh co, thang, luu/tai, dau may, di lai, dong ho, het gio...).
+  Chay trong thu muc rieng (huong dan o dau file); ket qua ghi vao `uitest.log`.
 
 ## Khac voi code cu
 - Bo phim h/j/k/l de di chuyen (trung phim L = luu); con WASD va mui ten.

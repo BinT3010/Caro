@@ -13,3 +13,7 @@ CMakeSettings.json
 *.caro
 caro_history.txt
 caro_settings.cfg
+
+# Thu muc chay kiem thu giao dien (tests/ui_test.c)
+uitest/
+*.log

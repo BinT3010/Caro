@@ -214,7 +214,7 @@ void drawHud(void) {
     drawTime();
 
     setColor(8, 0);
-    printPad(x, HELP_Y, "W/A/S/D hoac phim mui ten: di chuyen", HUD_W);
+    printPad(x, HELP_Y, "W/A/S/D, mui ten: di chuyen", HUD_W);
     printPad(x, HELP_Y + 1, "Enter: danh co", HUD_W);
     printPad(x, HELP_Y + 2, "L: luu van    T: tai van", HUD_W);
     printPad(x, HELP_Y + 3, "Esc: thoat ve menu", HUD_W);
