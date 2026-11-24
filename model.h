@@ -71,6 +71,23 @@ void clockStop(void);
 int  clockElapsed(void);
 void clockSet(int seconds);
 
+/* ---- Gioi han thoi gian (kieu dong ho co vua) ----
+ * Moi ben (nguoi hay may) co timeLimitSec giay cho CA VAN. Dong ho chi chay trong
+ * luot cua ben do; ai het gio truoc thi thua. Thoi gian tinh bang mili giay, ham nhan
+ * "thoi diem hien tai" (nowMs) tu ngoai vao nen Model khong phu thuoc Windows. */
+#define TIME_5_MIN 300
+#define TIME_10_MIN 600
+#define TIME_15_MIN 900
+#define TIME_DEFAULT TIME_10_MIN
+extern int timeLimitSec;                         /* gioi han cua van dang choi */
+void turnClockReset(int limitSeconds);           /* ca 2 ben day gio, dong ho dung */
+void turnClockSet(int limitSeconds, long leftX, long leftO);  /* nap tu file */
+void turnClockStart(long nowMs);                 /* bat dau dem cho ben dang toi luot (turn) */
+void turnClockStop(long nowMs);                  /* dung dem, tru thoi gian da dung */
+long turnClockLeftMs(int idx, long nowMs);       /* con lai cua nguoi idx (0 = X, 1 = O) */
+int  turnClockShownSeconds(int idx, long nowMs); /* so giay hien thi (lam tron len) */
+int  turnClockExpired(long nowMs);               /* ben dang toi luot da het gio? */
+
 /* Nap trang thai tu file da doc. Tra ve 0 neu OK, khac 0 neu du lieu sai luat. */
 int  loadState(int marks[BOARD_SIZE][BOARD_SIZE], int cursorRow, int cursorCol,
                const Session *s, int elapsedSeconds);

@@ -384,6 +384,77 @@ static void testUndo(void) {
     CHECK(undoMove(NULL, NULL) == 0 && chessBoard[3][3].mark == 1);   /* khong xoa duoc quan da tai */
 }
 
+static void testClock(void) {
+    printf("dong ho tung ben (5/10/15 phut)\n");
+    timeLimitSec = TIME_5_MIN;
+    resetData();                                          /* van moi: ca 2 ben day 5 phut */
+    CHECK(turnClockLeftMs(0, 0) == 300000L && turnClockLeftMs(1, 0) == 300000L);
+    CHECK(turnClockShownSeconds(0, 0) == 300 && !turnClockExpired(0));
+
+    /* X nghi 2,5 giay: chi dong ho X bi tru, O giu nguyen */
+    turnClockStart(1000);
+    CHECK(turnClockLeftMs(0, 3500) == 297500L && turnClockLeftMs(1, 3500) == 300000L);
+    CHECK(turnClockShownSeconds(0, 3500) == 298);         /* 297,5 giay -> hien 298 (lam tron len) */
+    turnClockStop(3500);
+    switchTurn();
+    turnClockStart(3500);                                 /* den luot O */
+    CHECK(turnClockLeftMs(1, 13500) == 290000L && turnClockLeftMs(0, 13500) == 297500L);
+
+    /* tam dung (luu/tai/ESC): thoi gian khong bi tru */
+    turnClockStop(13500);
+    CHECK(turnClockLeftMs(1, 999999) == 290000L);
+    turnClockStart(500000);
+    CHECK(turnClockLeftMs(1, 501000) == 289000L);
+    turnClockStart(400000);                               /* goi start khi dang chay: bo qua */
+    CHECK(turnClockLeftMs(1, 501000) == 289000L);
+
+    /* het gio */
+    CHECK(!turnClockExpired(500000 + 289999));
+    CHECK(turnClockExpired(500000 + 290000));
+    CHECK(turnClockLeftMs(1, 500000 + 999999) == 0 && turnClockShownSeconds(1, 500000 + 999999) == 0);
+    turnClockStop(500000 + 999999);
+    CHECK(turnClockLeftMs(1, 0) == 0);                    /* khong bi am */
+
+    /* 10 / 15 phut */
+    turnClockReset(TIME_15_MIN);
+    CHECK(timeLimitSec == 900 && turnClockLeftMs(0, 0) == 900000L);
+    timeLimitSec = TIME_10_MIN;
+    resetData();
+    CHECK(turnClockLeftMs(1, 0) == 600000L);
+
+    /* luu / tai giu thoi gian con lai */
+    const char *file = "__test_clock.caro";
+    resetSession();
+    timeLimitSec = TIME_15_MIN;
+    resetData();
+    play(5, 5, 1);
+    turnClockSet(TIME_15_MIN, 812345L, 777000L);
+    CHECK(saveGame(file) == SAVE_OK);
+    timeLimitSec = TIME_5_MIN;
+    resetData();
+    CHECK(loadGame(file) == SAVE_OK);
+    CHECK(timeLimitSec == TIME_15_MIN && turnClockLeftMs(0, 0) == 812345L && turnClockLeftMs(1, 0) == 777000L);
+
+    /* file sai: gio la, con lai > gioi han, con lai = 0 */
+    const char *bad[] = { "clock 120 1000 1000", "clock 300 300001 1000", "clock 600 0 5000", "clock 600 abc" };
+    for (int k = 0; k < 4; k++) {
+        FILE *f = fopen(file, "w");
+        fprintf(f, "CARO-SAVE 1\nsize 12\np1 A\np2 B\nwins 0 0\ndraws 0\nelapsed 0\ncursor 0 0\nmode 0\n%s\nboard\n", bad[k]);
+        for (int i = 0; i < BOARD_SIZE; i++) fprintf(f, "0 0 0 0 0 0 0 0 0 0 0 0\n");
+        fclose(f);
+        CHECK(loadGame(file) == SAVE_ERR_FORMAT);
+    }
+    /* file cu (khong co dong clock): 10 phut, ca 2 ben day gio */
+    FILE *f = fopen(file, "w");
+    fprintf(f, "CARO-SAVE 1\nsize 12\np1 A\np2 B\nwins 0 0\ndraws 0\nelapsed 0\ncursor 0 0\nboard\n");
+    for (int i = 0; i < BOARD_SIZE; i++) fprintf(f, "0 0 0 0 0 0 0 0 0 0 0 0\n");
+    fclose(f);
+    timeLimitSec = TIME_5_MIN;
+    CHECK(loadGame(file) == SAVE_OK && timeLimitSec == TIME_10_MIN && turnClockLeftMs(1, 0) == 600000L);
+    remove(file);
+    timeLimitSec = TIME_DEFAULT;
+}
+
 int main(void) {
     testWinLines();
     testLoadState();
@@ -392,6 +463,7 @@ int main(void) {
     testSound();
     testAI();
     testUndo();
+    testClock();
     printf("\n%d dung, %d sai\n", passed, failed);
     return failed ? 1 : 0;
 }
