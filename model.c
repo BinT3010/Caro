@@ -44,6 +44,53 @@ void clockSet(int seconds) {
     clockRunning = 0;
 }
 
+/* ---------------- dong ho tung nguoi (gioi han thoi gian) ---------------- */
+int timeLimitSec = TIME_DEFAULT;
+static long leftMs[2];              /* thoi gian con lai: [0] = X, [1] = O */
+static int tcRunning, tcIdx;        /* dang dem cho nguoi nao */
+static long tcStart;
+
+void turnClockReset(int limitSeconds) {
+    timeLimitSec = limitSeconds;
+    leftMs[0] = leftMs[1] = (long)limitSeconds * 1000L;
+    tcRunning = 0;
+}
+
+void turnClockSet(int limitSeconds, long leftX, long leftO) {
+    turnClockReset(limitSeconds);
+    leftMs[0] = leftX;
+    leftMs[1] = leftO;
+}
+
+void turnClockStart(long nowMs) {
+    if (tcRunning) return;
+    tcIdx = playerIndex(turn);
+    tcStart = nowMs;
+    tcRunning = 1;
+}
+
+void turnClockStop(long nowMs) {
+    if (!tcRunning) return;
+    long used = nowMs - tcStart;
+    if (used > 0) leftMs[tcIdx] -= used;
+    if (leftMs[tcIdx] < 0) leftMs[tcIdx] = 0;
+    tcRunning = 0;
+}
+
+long turnClockLeftMs(int idx, long nowMs) {
+    long left = leftMs[idx];
+    if (tcRunning && idx == tcIdx && nowMs > tcStart) left -= nowMs - tcStart;
+    return left < 0 ? 0 : left;
+}
+
+int turnClockShownSeconds(int idx, long nowMs) {
+    return (int)((turnClockLeftMs(idx, nowMs) + 999) / 1000);    /* lam tron len: 0 = het gio */
+}
+
+int turnClockExpired(long nowMs) {
+    return turnClockLeftMs(playerIndex(turn), nowMs) <= 0;
+}
+
 /* ---------------- ban co ---------------- */
 int playerIndex(int mark) { return mark == 1 ? 0 : 1; }
 
@@ -64,6 +111,7 @@ void resetData(void) {
     histLen = 0;
     undoCount = 0;
     clockReset();
+    turnClockReset(timeLimitSec);  /* van moi: ca 2 ben day gio */
 }
 
 void resetSession(void) {

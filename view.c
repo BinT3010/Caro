@@ -143,14 +143,39 @@ static void printPad(int x, int y, const char *s, int width) {
     printf("%-*.*s", width, width, s);
 }
 
+#define LOW_TIME_SEC 30     /* con duoi 30 giay -> dong ho chuyen mau do */
+
+/* So mili giay tu luc chuong trinh chay. Tru theo kieu unsigned nen khong bi loi
+ * khi may da bat lien tuc > 24,8 ngay (GetTickCount vuot qua gioi han cua long). */
+long nowMs(void) {
+    static DWORD base = 0;
+    static int started = 0;
+    if (!started) { base = GetTickCount(); started = 1; }
+    return (long)(GetTickCount() - base);
+}
+
+/* Cap nhat cac dong thoi gian: dong ho con lai cua tung ben + tong thoi gian van. */
 void drawTime(void) {
-    char buf[40];
+    char buf[48];
+    long now = nowMs();
+    for (int k = 0; k < 2; k++) {
+        int mark = k == 0 ? 1 : -1;
+        int s = turnClockShownSeconds(k, now);
+        int color = s <= LOW_TIME_SEC ? 12 : (turn == mark ? 15 : 7);   /* ben dang toi luot: sang hon */
+        snprintf(buf, sizeof buf, "    Con lai: %02d:%02d%s", s / 60, s % 60, turn == mark ? "  <" : "");
+        setColor(color, 0);
+        printPad(PANEL_X, TOP + 7 + k * 4, buf, HUD_W);
+    }
     int s = clockElapsed();
-    snprintf(buf, sizeof buf, "Thoi gian : %02d:%02d", s / 60, s % 60);
+    snprintf(buf, sizeof buf, "Tong thoi gian van: %02d:%02d", s / 60, s % 60);
     setColor(7, 0);
     printPad(PANEL_X, TOP + 14, buf, HUD_W);
     placeCursor();
 }
+
+/* Van ket thuc vi het gio -> dong thong bao ghi them "HET GIO!". */
+static int finishByTimeout = 0;
+void setTimeoutFinish(int on) { finishByTimeout = on; }
 
 void drawHud(void) {
     char buf[64];
@@ -158,6 +183,9 @@ void drawHud(void) {
 
     setColor(COLOR_TITLE, 0);
     printPad(x, TOP, "======== CARO ========", HUD_W);
+    setColor(8, 0);
+    snprintf(buf, sizeof buf, "Gio moi ben: %d phut", timeLimitSec / 60);
+    printPad(x, TOP + 1, buf, HUD_W);
 
     int p = playerIndex(turn);
     setColor(markColor(turn), 0);
@@ -211,6 +239,7 @@ void drawGameScreen(void) {
     drawBoard();
     drawMarks();
     boardShown = 1;
+    finishByTimeout = 0;
     drawHud();          /* drawHud -> placeCursor: to sang o dang chon */
 }
 
@@ -235,28 +264,28 @@ void printChessChar(int t) {
 }
 
 static void drawBanner(int res, int color) {
-    char buf[100];
+    char buf[100], out[128];
     if (aiLevel != AI_NONE && res != RES_DRAW) {       /* dau voi may */
         int aiWon = res == (AI_MARK == 1 ? RES_X_WIN : RES_O_WIN);
         if (aiWon)
-            snprintf(buf, sizeof buf, "*** %s DA THANG! Thu lai nhe! ***", aiName(aiLevel));
+            snprintf(buf, sizeof buf, "%s DA THANG! Thu lai nhe!", aiName(aiLevel));
         else
-            snprintf(buf, sizeof buf, "*** CHUC MUNG %s DA THANG %s! ***",
+            snprintf(buf, sizeof buf, "CHUC MUNG %s DA THANG %s!",
                      session.name[playerIndex(-AI_MARK)], aiName(aiLevel));
-        showMessage(buf, color);
-        return;
+    } else {
+        switch (res) {
+            case RES_X_WIN:
+                snprintf(buf, sizeof buf, "CHUC MUNG %s (X) DA CHIEN THANG!", session.name[0]);
+                break;
+            case RES_O_WIN:
+                snprintf(buf, sizeof buf, "CHUC MUNG %s (O) DA CHIEN THANG!", session.name[1]);
+                break;
+            default:
+                snprintf(buf, sizeof buf, "Hai ben hoa nhau!");
+        }
     }
-    switch (res) {
-        case RES_X_WIN:
-            snprintf(buf, sizeof buf, "*** CHUC MUNG %s (X) DA CHIEN THANG! ***", session.name[0]);
-            break;
-        case RES_O_WIN:
-            snprintf(buf, sizeof buf, "*** CHUC MUNG %s (O) DA CHIEN THANG! ***", session.name[1]);
-            break;
-        default:
-            snprintf(buf, sizeof buf, "*** Hai ben hoa nhau! ***");
-    }
-    showMessage(buf, color);
+    snprintf(out, sizeof out, "*** %s%s ***", finishByTimeout && res != RES_DRAW ? "HET GIO! " : "", buf);
+    showMessage(out, color);
 }
 
 void winPlayer(int res) {

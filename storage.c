@@ -142,6 +142,8 @@ int listSaves(FileName *names, int max) {
  *   cursor <dong> <cot>
  *   mode <0..3>         (0 = 2 nguoi, 1 = may De, 2 = may Trung binh, 3 = may Kho;
  *                        file cu khong co dong nay -> coi la 2 nguoi)
+ *   clock <gioi han giay> <ms con lai cua X> <ms con lai cua O>
+ *                        (300/600/900; file cu khong co -> 10 phut, ca 2 ben day gio)
  *   board
  *   <12 dong, moi dong 12 so: 0 trong, 1 = X, -1 = O>
  * Luot di va so nuoc di duoc suy ra tu ban co khi tai (nen khong the sai lech).
@@ -158,6 +160,8 @@ int saveGame(const char *file) {
     fprintf(f, "elapsed %d\n", clockElapsed());
     fprintf(f, "cursor %d %d\n", currX, currY);
     fprintf(f, "mode %d\n", aiLevel);
+    /* luc luu dong ho dang dung (control da tam dung) nen thoi diem truyen vao khong anh huong */
+    fprintf(f, "clock %d %ld %ld\n", timeLimitSec, turnClockLeftMs(0, 0), turnClockLeftMs(1, 0));
     fprintf(f, "board\n");
     for (int i = 0; i < BOARD_SIZE; i++)
         for (int j = 0; j < BOARD_SIZE; j++)
@@ -172,6 +176,8 @@ int loadGame(const char *file) {
 
     char line[256];
     int size = 0, elapsed = 0, cr = 0, cc = 0, mode = AI_NONE;
+    int limit = TIME_DEFAULT;
+    long leftX = TIME_DEFAULT * 1000L, leftO = TIME_DEFAULT * 1000L;
     int marks[BOARD_SIZE][BOARD_SIZE];
     Session s;
     memset(&s, 0, sizeof s);
@@ -192,6 +198,12 @@ int loadGame(const char *file) {
         ok = sscanf(line, "mode %d", &mode) == 1 && mode >= AI_NONE && mode <= AI_HARD;
         ok = ok && readLine(f, line, sizeof line);
     }
+    if (ok && strncmp(line, "clock ", 6) == 0) {               /* dong "clock" la tuy chon */
+        ok = sscanf(line, "clock %d %ld %ld", &limit, &leftX, &leftO) == 3
+             && (limit == TIME_5_MIN || limit == TIME_10_MIN || limit == TIME_15_MIN)
+             && leftX > 0 && leftO > 0 && leftX <= limit * 1000L && leftO <= limit * 1000L;
+        ok = ok && readLine(f, line, sizeof line);
+    }
     ok = ok && strcmp(line, "board") == 0;
     for (int i = 0; ok && i < BOARD_SIZE; i++) {
         ok = readLine(f, line, sizeof line);
@@ -207,7 +219,8 @@ int loadGame(const char *file) {
     if (!ok) return SAVE_ERR_FORMAT;
     s.games = s.wins[0] + s.wins[1] + s.draws;
     if (loadState(marks, cr, cc, &s, elapsed) != 0) return SAVE_ERR_FORMAT;
-    aiLevel = mode;                 /* chi doi che do khi tai thanh cong */
+    aiLevel = mode;                 /* chi doi che do va dong ho khi tai thanh cong */
+    turnClockSet(limit, leftX, leftO);
     return SAVE_OK;
 }
 

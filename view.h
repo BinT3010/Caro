@@ -43,13 +43,15 @@ void drawMarks(void);                 /* ve lai tat ca quan (sau khi tai van) */
 void drawGameScreen(void);            /* xoa man hinh + ban co + quan + bang thong so */
 void placeCursor(void);               /* dua con tro ve o hien hanh */
 void drawHud(void);                   /* bang thong so 2 nguoi choi (muc 4.4) */
-void drawTime(void);                  /* cap nhat rieng dong thoi gian */
+void drawTime(void);                  /* cap nhat cac dong thoi gian (dong ho 2 ben + tong) */
+long nowMs(void);                     /* mili giay tu luc chuong trinh chay (cho dong ho) */
 void showMessage(const char *msg, int color);
 void clearMessage(void);
 void printChessChar(int turn);        /* in X/O tai con tro */
 void eraseCell(int r, int c);         /* xoa quan tai o (r, c) - dung khi di lai */
 void winPlayer(int res);              /* dong chu thang/thua/hoa */
 void winEffect(int res);              /* hieu ung thang/hoa (muc 4.3) */
+void setTimeoutFinish(int on);        /* 1 = van ket thuc vi het gio (dong thong bao ghi "HET GIO!") */
 void endMenu(int retryText, int retryBg, int exitText, int exitBg);
 void endMenuBorder(int row);
 void currPosHighlight(int mark);

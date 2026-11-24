@@ -39,6 +39,20 @@ Neu dung Windows Terminal moi (Win 11), viec tu dong doi kich thuoc cua so co th
 Thang khi co **5 quan lien tiep** (ngang, doc, cheo), 6 quan tro len cung tinh. Ban co day ma khong ai thang -> hoa.
 Cuoi van: chon *Choi lai* (Y) hoac *Ve menu* (N/Esc). Diem so cua 2 nguoi duoc giu qua cac van lien tiep.
 
+### Gioi han thoi gian (kieu dong ho co vua)
+*New Game* -> chon che do choi -> chon **5 phut**, **10 phut** hoac **15 phut** (Quay lai/Esc: chon lai che do).
+- Moi ben (nguoi choi hoac may) co **tong** so phut do cho **ca van**. Dong ho cua ben nao chi chay trong
+  luot cua ben do, **khong** duoc cong them sau moi nuoc. Ben nao het gio truoc thi **thua**
+  (dong thong bao ghi "HET GIO!"), ket qua duoc ghi vao diem va lich su nhu thang/thua binh thuong.
+- Ap dung cho ca che do 2 nguoi va choi voi may; dong ho cua may chay ca trong luc may "suy nghi".
+- Bang thong so hien "Gio moi ben", thoi gian con lai cua tung ben (ben dang toi luot co dau `<`,
+  con duoi 30 giay chuyen mau do) va tong thoi gian van.
+- Dong ho tam dung khi luu/tai van (L/T), khi hoi thoat (Esc) va khi van ket thuc.
+  Choi lai giu nguyen muc thoi gian, ca 2 ben day gio lai.
+- File luu ghi thoi gian con lai cua 2 ben (`clock <gioi han> <ms X> <ms O>`); file cu chua co dong nay
+  duoc tai voi 10 phut moi ben.
+- Di lai (U) khong tra lai thoi gian da dung.
+
 ### Choi voi may
 *New Game* -> chon **2 nguoi choi**, **Choi voi may - De**, **- Trung binh** hoac **- Kho**.
 Nguoi choi cam **X** (di truoc), may cam **O**. Sau moi nuoc cua nguoi, may "suy nghi" khoang 0,35 giay
@@ -72,6 +86,7 @@ Lich su nuoc di bat dau lai khi sang van moi hoac khi tai van tu file (chi lui d
 | Them | Doi ten nguoi choi (luu lai) | Settings -> `caro_settings.cfg` |
 | Them | Choi voi may (AI) 3 muc De / Trung binh / Kho | `ai.c` (aiChooseMove), `control.c` (newGameMenu, aiMove) |
 | Them | Di lai (phim U), chi khi choi voi may | `model.c` (undoMove), `control.c` (undoVsAi) |
+| Them | Gioi han thoi gian 5/10/15 phut moi ben (kieu co vua), het gio la thua | `model.c` (turnClock...), `control.c` (timeMenu, readKey), `view.c` (drawTime) |
 
 ## Cau truc ma nguon
 - `model.c/h`: du lieu ban co + luat choi (khong dung Windows nen test duoc).

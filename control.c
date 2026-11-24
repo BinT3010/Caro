@@ -18,23 +18,34 @@
 /* ---------------- phim ---------------- */
 enum {
     KEY_BACKSPACE = 8, KEY_ENTER = 13, KEY_ESC = 27,
-    KEY_UP = 1001, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_PGUP, KEY_PGDN
+    KEY_UP = 1001, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_PGUP, KEY_PGDN,
+    KEY_TIMEOUT                                 /* khong phai phim: ben dang toi luot het gio */
 };
 enum { PLAY_MENU = 0, PLAY_REPLAY = 1 };
 enum { TEXT_NAME = 0, TEXT_FILE = 1 };
 
+
+
+/* Dung / chay lai ca dong ho tong cua van va dong ho cua ben dang toi luot. */
+static void pauseClocks(void) { clockStop(); turnClockStop(nowMs()); }
+static void resumeClocks(void) { clockStart(); turnClockStart(nowMs()); }
+
 /* Doc 1 phim. W/A/S/D duoc doi thanh phim mui ten, chu thuong -> chu hoa.
- * Khi inGame != 0, trong luc cho phim van cap nhat dong ho tren man hinh. */
+ * Khi inGame != 0: trong luc cho phim van cap nhat dong ho tren man hinh, va tra ve
+ * KEY_TIMEOUT ngay khi ben dang toi luot het gio. */
 static int readKey(int inGame) {
-    int shown = -1;
+    long shown = -1;
     for (;;) {
         while (!_kbhit()) {
             if (inGame) {
-                int s = clockElapsed();
+                long now = nowMs();
+                if (turnClockExpired(now)) return KEY_TIMEOUT;
+                long s = clockElapsed() * 10000L + turnClockShownSeconds(playerIndex(turn), now);
                 if (s != shown) { shown = s; drawTime(); }
             }
             Sleep(30);
         }
+        if (inGame && turnClockExpired(nowMs())) return KEY_TIMEOUT;   /* bam phim khi vua het gio */
         int c = _getch();
         if (c == 0 || c == 224) {              /* phim mo rong: mui ten, PgUp... */
             c = _getch();
@@ -210,7 +221,7 @@ int end(void) {
 
 /* Xu ly mot van da co ket qua: ghi diem, ghi lich su, hieu ung, am thanh, menu cuoi van. */
 static int processFinish(int res) {
-    clockStop();
+    pauseClocks();
     recordResult(res);
     historyAppend(res);
     winPlayer(res);
@@ -240,12 +251,22 @@ static int finishMove(void) {
     int res = testBoard();
     if (res != RES_NONE) return res;
     soundPlay(turn == 1 ? SND_PLACE_X : SND_PLACE_O);
+    long now = nowMs();
+    turnClockStop(now);                            /* dung dong ho ben vua danh ... */
     switchTurn();
+    turnClockStart(now);                           /* ... va chay dong ho ben kia */
     drawHud();
     return RES_NONE;
 }
 
-/* Luot cua may. Tra ve ket qua van co (RES_NONE neu van tiep tuc). */
+/* Ben dang toi luot (turn) het gio -> ben kia thang. */
+static int timeoutResult(void) {
+    setTimeoutFinish(1);
+    return turn == 1 ? RES_O_WIN : RES_X_WIN;
+}
+
+/* Luot cua may. Tra ve ket qua van co (RES_NONE neu van tiep tuc).
+ * Dong ho cua may cung chay trong luc may "suy nghi". */
 static int aiMove(void) {
     showMessage("May dang suy nghi...", 8);
     DWORD start = GetTickCount();
@@ -255,6 +276,7 @@ static int aiMove(void) {
     if (used < AI_DELAY_MS) Sleep(AI_DELAY_MS - used);
     while (_kbhit()) _getch();                     /* bo cac phim bam trong luc may nghi */
     clearMessage();
+    if (turnClockExpired(nowMs())) return timeoutResult();   /* may het gio truoc khi kip danh */
     currX = r;
     currY = c;                                     /* con tro nhay toi nuoc may vua danh */
     if (!checkLegalEnter(turn)) return RES_DRAW;   /* khong xay ra: AI luon chon o trong */
@@ -313,21 +335,24 @@ static int gameLoop(void) {
                 break;
             }
 
+            case KEY_TIMEOUT:                           /* nguoi dang toi luot het gio */
+                return processFinish(timeoutResult());
+
             case 'U':                                   /* di lai (chi khi choi voi may) */
                 undoVsAi();
                 break;
 
-            case 'L':                                   /* luu van */
-                clockStop();
+            case 'L':                                   /* luu van (dong ho tam dung) */
+                pauseClocks();
                 promptSave(PANEL_X, GAME_LIST_Y, PROMPT_Y);
                 drawHud();                              /* ve lai phan huong dan bi danh sach file de len */
                 showCursor(1);
                 placeCursor();
-                clockStart();
+                resumeClocks();
                 break;
 
             case 'T':                                   /* tai van */
-                clockStop();
+                pauseClocks();
                 if (promptLoad(PANEL_X, GAME_LIST_Y, PROMPT_Y)) {
                     drawGameScreen();
                     showMessage("Da tai van co. Tiep tuc choi!", 10);
@@ -336,25 +361,25 @@ static int gameLoop(void) {
                 }
                 showCursor(1);
                 placeCursor();
-                clockStart();
+                resumeClocks();
                 break;
 
             case KEY_ESC:
-                clockStop();
+                pauseClocks();
                 if (askLeave()) return PLAY_MENU;
                 drawHud();                              /* co the da hien danh sach file khi chon Y roi huy */
                 showCursor(1);
                 placeCursor();
-                clockStart();
+                resumeClocks();
                 break;
         }
     }
 }
 
 static void startGame(void) {
-    resetData();
+    resetData();                                /* ca 2 ben day gio (timeLimitSec) */
     drawGameScreen();
-    clockStart();
+    resumeClocks();
 }
 
 /* Choi lien tiep nhieu van cho den khi nguoi dung ve menu. */
@@ -365,9 +390,10 @@ static void playMatch(void) {
     }
 }
 
-static void newGame(int level) {
+static void newGame(int level, int limitSeconds) {
     resetSession();
     aiLevel = level;
+    timeLimitSec = limitSeconds;                /* giu nguyen cho cac van choi lai */
     if (level != AI_NONE)                       /* may cam quan O */
         snprintf(session.name[playerIndex(AI_MARK)], NAME_LEN, "%s", aiName(level));
     soundPlay(SND_START);
@@ -386,7 +412,7 @@ static void loadFromMenu(void) {
     if (promptLoad(3, 5, 24)) {
         drawGameScreen();
         showMessage("Da tai van co. Tiep tuc choi!", 10);
-        clockStart();
+        resumeClocks();
         playMatch();
     }
 }
@@ -478,16 +504,29 @@ static void historyScreen(void) {
     }
 }
 
-/* New Game: chon che do choi. */
+/* Chon thoi gian cho moi ben. Tra ve so giay, 0 neu quay lai. */
+static int timeMenu(void) {
+    static const char *const items[] = { "5 phut moi ben", "10 phut moi ben", "15 phut moi ben", "Quay lai" };
+    switch (runMenu("THOI GIAN", items, 4)) {
+        case 0: return TIME_5_MIN;
+        case 1: return TIME_10_MIN;
+        case 2: return TIME_15_MIN;
+        default: return 0;                      /* Quay lai / Esc */
+    }
+}
+
+/* New Game: chon che do choi, roi chon thoi gian (Quay lai o buoc thoi gian -> chon lai che do). */
 static void newGameMenu(void) {
     static const char *const items[] = { "2 nguoi choi", "Choi voi may - De", "Choi voi may - Trung binh",
                                          "Choi voi may - Kho", "Quay lai" };
-    switch (runMenu("NEW GAME", items, 5)) {
-        case 0: newGame(AI_NONE); break;
-        case 1: newGame(AI_EASY); break;
-        case 2: newGame(AI_MEDIUM); break;
-        case 3: newGame(AI_HARD); break;
-        default: break;                         /* Quay lai / Esc */
+    static const int levels[] = { AI_NONE, AI_EASY, AI_MEDIUM, AI_HARD };
+    for (;;) {
+        int sel = runMenu("NEW GAME", items, 5);
+        if (sel < 0 || sel > 3) return;         /* Quay lai / Esc */
+        int limit = timeMenu();
+        if (limit == 0) continue;
+        newGame(levels[sel], limit);
+        return;
     }
 }
 
