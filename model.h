@@ -51,6 +51,13 @@ void resetData(void);                /* ban co moi, giu nguyen session */
 void resetSession(void);             /* xoa diem, lay ten tu settings */
 void clampCursor(void);              /* giu con tro trong ban co */
 int  checkLegalEnter(int t);         /* danh quan t tai con tro; 1 = hop le, 0 = o da co */
+/* ---- Di lai (chi dung khi choi voi may) ----
+ * Moi nuoc danh qua checkLegalEnter duoc ghi vao lich su cua van. Lich su bi xoa khi
+ * bat dau van moi (resetData) va khi tai van tu file (chi di lai duoc cac nuoc sau khi tai). */
+extern int undoCount;                /* so lan da di lai trong van nay */
+int  moveHistoryLength(void);        /* so nuoc trong lich su nuoc di */
+int  lastMoveMark(void);             /* quan cua nuoc cuoi (1/-1), 0 neu chua co */
+int  undoMove(int *r, int *c);       /* xoa nuoc cuoi, tra ve o vua xoa; 0 neu khong con nuoc */
 int  checkWin(int t);                /* nuoc vua danh co tao 5 lien tiep? tra ve t hoac 0 */
 int  boardFull(void);
 int  testBoard(void);                /* RES_X_WIN / RES_O_WIN / RES_DRAW / RES_NONE */

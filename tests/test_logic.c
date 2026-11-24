@@ -335,6 +335,55 @@ static void testAI(void) {
     aiLevel = AI_NONE;
 }
 
+static void testUndo(void) {
+    printf("di lai (undo)\n");
+    int r, c;
+    resetData();
+    CHECK(moveHistoryLength() == 0 && lastMoveMark() == 0);
+    CHECK(undoMove(&r, &c) == 0);                         /* chua co nuoc nao */
+
+    play(5, 5, 1); switchTurn();                          /* nguoi (X) */
+    play(5, 6, -1); switchTurn();                         /* may (O) */
+    play(6, 6, 1); switchTurn();
+    play(4, 4, -1); switchTurn();
+    CHECK(moveHistoryLength() == 4 && lastMoveMark() == -1 && turn == 1);
+
+    /* di lai 1 cap: nuoc cua may roi nuoc cua nguoi */
+    CHECK(undoMove(&r, &c) == 1 && r == 4 && c == 4);
+    CHECK(undoMove(&r, &c) == 1 && r == 6 && c == 6);
+    CHECK(chessBoard[4][4].mark == 0 && chessBoard[6][6].mark == 0);
+    CHECK(turn == 1 && totalMoves == 2 && moveCount[0] == 1 && moveCount[1] == 1);
+    CHECK(lastX == 5 && lastY == 6 && lastMoveMark() == -1);
+
+    /* danh lai o do duoc, va van kiem tra thang dung */
+    currX = 6; currY = 6;
+    CHECK(checkLegalEnter(1) == 1 && moveHistoryLength() == 3);
+
+    /* di lai het */
+    while (undoMove(NULL, NULL)) {}
+    CHECK(totalMoves == 0 && moveCount[0] == 0 && moveCount[1] == 0 && lastX == -1 && turn == 1);
+
+    /* di lai nuoc thang -> khong con thang */
+    resetData();
+    for (int k = 0; k < 5; k++) play(0, k, 1);
+    CHECK(checkWin(1) == 1);
+    undoMove(NULL, NULL);
+    CHECK(testBoard() == RES_NONE && winCount == 0);
+
+    /* van moi / tai van: xoa lich su nuoc di */
+    resetData();
+    CHECK(moveHistoryLength() == 0 && undoCount == 0);
+    int m[BOARD_SIZE][BOARD_SIZE];
+    Session s;
+    memset(m, 0, sizeof m);
+    memset(&s, 0, sizeof s);
+    strcpy(s.name[0], "A"); strcpy(s.name[1], "B");
+    m[3][3] = 1; m[3][4] = -1;
+    play(7, 7, 1);
+    CHECK(loadState(m, 0, 0, &s, 0) == 0 && moveHistoryLength() == 0);
+    CHECK(undoMove(NULL, NULL) == 0 && chessBoard[3][3].mark == 1);   /* khong xoa duoc quan da tai */
+}
+
 int main(void) {
     testWinLines();
     testLoadState();
@@ -342,6 +391,7 @@ int main(void) {
     testSaveLoad();
     testSound();
     testAI();
+    testUndo();
     printf("\n%d dung, %d sai\n", passed, failed);
     return failed ? 1 : 0;
 }

@@ -261,6 +261,32 @@ static int aiMove(void) {
     return finishMove();
 }
 
+/* Di lai (phim U) - CHI khi choi voi may: xoa nuoc vua roi cua may va nuoc cua
+ * nguoi choi ngay truoc do, tra lai luot cho nguoi choi tai dung o do. */
+static void undoVsAi(void) {
+    if (aiLevel == AI_NONE) {
+        soundPlay(SND_ERROR);
+        showMessage("Chi duoc di lai khi choi voi may!", 12);
+        return;
+    }
+    int human = -AI_MARK;
+    int need = lastMoveMark() == AI_MARK ? 2 : 1;   /* nuoc cua may + nuoc cua nguoi */
+    if (moveHistoryLength() < need) {
+        soundPlay(SND_ERROR);
+        showMessage("Khong con nuoc nao de di lai!", 12);
+        return;
+    }
+    int r, c, hr = currX, hc = currY;
+    if (lastMoveMark() == AI_MARK && undoMove(&r, &c)) eraseCell(r, c);
+    if (lastMoveMark() == human && undoMove(&r, &c)) { eraseCell(r, c); hr = r; hc = c; }
+    undoCount++;
+    currX = hr;
+    currY = hc;                                     /* con tro ve o nguoi choi vua danh */
+    soundPlay(SND_LOAD);
+    drawHud();
+    showMessage("Da di lai. Den luot ban danh lai.", 10);
+}
+
 static int gameLoop(void) {
     for (;;) {
         if (aiLevel != AI_NONE && turn == AI_MARK) {
@@ -286,6 +312,10 @@ static int gameLoop(void) {
                 if (res != RES_NONE) return processFinish(res);
                 break;
             }
+
+            case 'U':                                   /* di lai (chi khi choi voi may) */
+                undoVsAi();
+                break;
 
             case 'L':                                   /* luu van */
                 clockStop();
