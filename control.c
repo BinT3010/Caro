@@ -11,6 +11,9 @@
 #include "model.h"
 #include "storage.h"
 #include "sound.h"
+#include "ai.h"
+
+#define AI_DELAY_MS 350          /* may "suy nghi" mot chut cho nguoi choi kip nhin */
 
 /* ---------------- phim ---------------- */
 enum {
@@ -212,7 +215,8 @@ static int processFinish(int res) {
     historyAppend(res);
     winPlayer(res);
     drawHud();
-    soundPlay(res == RES_DRAW ? SND_DRAW : SND_WIN);
+    int lostToAi = aiLevel != AI_NONE && res == (AI_MARK == 1 ? RES_X_WIN : RES_O_WIN);
+    soundPlay(res == RES_DRAW || lostToAi ? SND_DRAW : SND_WIN);
     winEffect(res);
     return end() ? PLAY_REPLAY : PLAY_MENU;
 }
@@ -229,8 +233,41 @@ static int askLeave(void) {
     return c == 'N';
 }
 
+/* Xu ly sau khi quan `turn` da duoc dat tai (currX, currY): ve quan, kiem tra
+ * thang/hoa, doi luot. Dung chung cho nguoi choi va may. */
+static int finishMove(void) {
+    printChessChar(turn);
+    int res = testBoard();
+    if (res != RES_NONE) return res;
+    soundPlay(turn == 1 ? SND_PLACE_X : SND_PLACE_O);
+    switchTurn();
+    drawHud();
+    return RES_NONE;
+}
+
+/* Luot cua may. Tra ve ket qua van co (RES_NONE neu van tiep tuc). */
+static int aiMove(void) {
+    showMessage("May dang suy nghi...", 8);
+    DWORD start = GetTickCount();
+    int r = 0, c = 0;
+    if (!aiChooseMove(aiLevel, turn, &r, &c)) return RES_DRAW;   /* khong con o trong */
+    DWORD used = GetTickCount() - start;           /* muc Kho co the nghi lau hon */
+    if (used < AI_DELAY_MS) Sleep(AI_DELAY_MS - used);
+    while (_kbhit()) _getch();                     /* bo cac phim bam trong luc may nghi */
+    clearMessage();
+    currX = r;
+    currY = c;                                     /* con tro nhay toi nuoc may vua danh */
+    if (!checkLegalEnter(turn)) return RES_DRAW;   /* khong xay ra: AI luon chon o trong */
+    return finishMove();
+}
+
 static int gameLoop(void) {
     for (;;) {
+        if (aiLevel != AI_NONE && turn == AI_MARK) {
+            int res = aiMove();
+            if (res != RES_NONE) return processFinish(res);
+            continue;
+        }
         int key = readKey(1);
         switch (key) {
             case KEY_UP:    moveUp(); break;
@@ -245,12 +282,8 @@ static int gameLoop(void) {
                     break;
                 }
                 clearMessage();
-                printChessChar(turn);
-                int res = testBoard();
+                int res = finishMove();
                 if (res != RES_NONE) return processFinish(res);
-                soundPlay(turn == 1 ? SND_PLACE_X : SND_PLACE_O);
-                switchTurn();
-                drawHud();
                 break;
             }
 
@@ -302,8 +335,11 @@ static void playMatch(void) {
     }
 }
 
-static void newGame(void) {
+static void newGame(int level) {
     resetSession();
+    aiLevel = level;
+    if (level != AI_NONE)                       /* may cam quan O */
+        snprintf(session.name[playerIndex(AI_MARK)], NAME_LEN, "%s", aiName(level));
     soundPlay(SND_START);
     startGame();
     playMatch();
@@ -412,11 +448,24 @@ static void historyScreen(void) {
     }
 }
 
+/* New Game: chon che do choi. */
+static void newGameMenu(void) {
+    static const char *const items[] = { "2 nguoi choi", "Choi voi may - De", "Choi voi may - Trung binh",
+                                         "Choi voi may - Kho", "Quay lai" };
+    switch (runMenu("NEW GAME", items, 5)) {
+        case 0: newGame(AI_NONE); break;
+        case 1: newGame(AI_EASY); break;
+        case 2: newGame(AI_MEDIUM); break;
+        case 3: newGame(AI_HARD); break;
+        default: break;                         /* Quay lai / Esc */
+    }
+}
+
 void mainMenu(void) {
     static const char *const items[] = { "New Game", "Load Game", "History", "Settings", "Exit" };
     for (;;) {
         switch (runMenu("C A R O", items, 5)) {
-            case 0: newGame(); break;
+            case 0: newGameMenu(); break;
             case 1: loadFromMenu(); break;
             case 2: historyScreen(); break;
             case 3: settingsScreen(); break;
