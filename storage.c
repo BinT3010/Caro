@@ -45,6 +45,24 @@ void sanitizeName(char *dst, const char *src) {
     else snprintf(dst, NAME_LEN, "%s", tmp + a);
 }
 
+/* Dat ten cho nguoi choi idx (0 = X, 1 = O) trong van dau hien tai.
+ * - Bo trong / chi co khoang trang  -> giu ten cu (NAME_KEPT)
+ * - Trung ten nguoi con lai (khong phan biet hoa thuong) -> tu choi, giu ten cu (NAME_DUPLICATE)
+ * - Con lai: lam sach bang sanitizeName roi luu vao session (NAME_OK) */
+int setPlayerName(int idx, const char *typed) {
+    char clean[NAME_LEN];
+    const char *p = typed ? typed : "";
+    while (*p == ' ') p++;
+    if (*p == '\0') return NAME_KEPT;
+    sanitizeName(clean, p);
+    const char *other = session.name[1 - idx];
+    size_t i = 0;
+    while (clean[i] && other[i] && tolower((unsigned char)clean[i]) == tolower((unsigned char)other[i])) i++;
+    if (clean[i] == '\0' && other[i] == '\0') return NAME_DUPLICATE;
+    snprintf(session.name[idx], NAME_LEN, "%s", clean);
+    return NAME_OK;
+}
+
 /* So sanh khong phan biet hoa/thuong (Windows khong phan biet ten file). */
 static int sameNoCase(const char *a, const char *b, size_t n) {
     for (size_t i = 0; i < n; i++) {

@@ -22,6 +22,11 @@ typedef char FileName[FILE_NAME_LEN];
 
 /* ---- ten file ---- */
 void sanitizeName(char *dst, const char *src);     /* ten nguoi choi hop le, khong rong */
+/* Dat ten nguoi choi idx (0 = X, 1 = O) cho van dau hien tai (chi doi session, khong doi Settings). */
+#define NAME_OK 0                   /* da doi ten */
+#define NAME_KEPT 1                 /* bo trong -> giu ten cu */
+#define NAME_DUPLICATE 2            /* trung ten nguoi con lai -> khong doi */
+int  setPlayerName(int idx, const char *typed);
 /* Dam bao ten ket thuc bang .caro (them neu thieu). Tra ve 0 neu ten khong hop le
  * (rong, bat dau bang '.', ten thiet bi Windows nhu CON/NUL/COM1, qua dai). */
 int  normalizeFileName(char *name, size_t cap);

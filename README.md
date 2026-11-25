@@ -84,6 +84,7 @@ Lich su nuoc di bat dau lai khi sang van moi hoac khi tai van tu file (chi lui d
 | Them | Am thanh chinh duoc (bat/tat + am luong 0-100%, nghe thu) | `sound.c`, man hinh Settings |
 | Them | Luu lich su dau (ngay gio, 2 nguoi, ket qua, so nuoc, thoi gian), xem/xoa trong menu History | `storage.c` -> `caro_history.txt` |
 | Them | Doi ten nguoi choi (luu lai) | Settings -> `caro_settings.cfg` |
+| Them | Dat ten khi thi dau: sau khi chon che do + thoi gian, nhap ten X/O (choi voi may: chi nhap ten nguoi). De trong/Esc = giu ten mac dinh tu Settings; khong cho 2 nguoi trung ten | `control.c` (askPlayerNames), `storage.c` (setPlayerName) |
 | Them | Choi voi may (AI) 3 muc De / Trung binh / Kho | `ai.c` (aiChooseMove), `control.c` (newGameMenu, aiMove) |
 | Them | Di lai (phim U), chi khi choi voi may | `model.c` (undoMove), `control.c` (undoVsAi) |
 | Them | Gioi han thoi gian 5/10/15 phut moi ben (kieu co vua), het gio la thua | `model.c` (turnClock...), `control.c` (timeMenu, readKey), `view.c` (drawTime) |

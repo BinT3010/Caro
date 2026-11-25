@@ -390,12 +390,48 @@ static void playMatch(void) {
     }
 }
 
+/* Man hinh dat ten truoc khi thi dau. 2 nguoi: nhap ten X va O; choi voi may: chi nhap ten nguoi.
+ * Enter de trong hoac Esc = giu ten mac dinh (lay tu Settings). Ten chi ap dung cho phien nay. */
+static void askPlayerNames(int level) {
+    static const char marks[2] = { 'X', 'O' };
+    int count = (level == AI_NONE) ? 2 : 1;
+    char label[80], buf[NAME_LEN];
+    clearScreen();
+    setColor(14, 0);
+    goToXY(3, 2);
+    printf("DAT TEN NGUOI CHOI");
+    setColor(8, 0);
+    goToXY(3, 3);
+    printf("Enter de trong hoac Esc: giu ten mac dinh. Toi da %d ky tu.", NAME_LEN - 1);
+    setColor(7, 0);
+    for (int who = 0; who < count; who++) {
+        int y = 6 + 2 * who;
+        snprintf(label, sizeof label, "Nguoi choi %c (mac dinh \"%s\"): ", marks[who], session.name[who]);
+        for (;;) {
+            if (!readText(3, y, label, buf, NAME_LEN, TEXT_NAME)) buf[0] = '\0';   /* Esc = giu ten */
+            if (setPlayerName(who, buf) != NAME_DUPLICATE) break;
+            showMessage("Ten bi trung voi nguoi choi con lai, hay nhap ten khac!", 12);
+        }
+        clearMessage();
+        clearInputField(3, y);
+        snprintf(label, sizeof label, "Nguoi choi %c: ", marks[who]);
+        drawInputField(3, y, label, session.name[who]);
+    }
+    if (level != AI_NONE) {
+        snprintf(label, sizeof label, "Doi thu       O: ");
+        drawInputField(3, 8, label, session.name[playerIndex(AI_MARK)]);
+    }
+    showCursor(0);
+    Sleep(900);                                 /* cho nguoi choi nhin lai ten vua dat */
+}
+
 static void newGame(int level, int limitSeconds) {
     resetSession();
     aiLevel = level;
     timeLimitSec = limitSeconds;                /* giu nguyen cho cac van choi lai */
     if (level != AI_NONE)                       /* may cam quan O */
         snprintf(session.name[playerIndex(AI_MARK)], NAME_LEN, "%s", aiName(level));
+    askPlayerNames(level);
     soundPlay(SND_START);
     startGame();
     playMatch();

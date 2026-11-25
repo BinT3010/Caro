@@ -141,6 +141,26 @@ static void testFileNames(void) {
     CHECK(strlen(d) == NAME_LEN - 1);
 }
 
+static void testPlayerNames(void) {
+    printf("setPlayerName\n");
+    resetSession();
+    snprintf(session.name[0], NAME_LEN, "Nguoi choi 1");
+    snprintf(session.name[1], NAME_LEN, "Nguoi choi 2");
+    CHECK(setPlayerName(0, "  Lan  ") == NAME_OK && strcmp(session.name[0], "Lan") == 0);
+    CHECK(setPlayerName(1, "Minh") == NAME_OK && strcmp(session.name[1], "Minh") == 0);
+    CHECK(setPlayerName(0, "") == NAME_KEPT && strcmp(session.name[0], "Lan") == 0);     /* bo trong */
+    CHECK(setPlayerName(0, "    ") == NAME_KEPT && strcmp(session.name[0], "Lan") == 0); /* chi khoang trang */
+    CHECK(setPlayerName(0, NULL) == NAME_KEPT && strcmp(session.name[0], "Lan") == 0);
+    CHECK(setPlayerName(1, "LAN") == NAME_DUPLICATE && strcmp(session.name[1], "Minh") == 0); /* trung, khac hoa thuong */
+    CHECK(setPlayerName(1, " lan ") == NAME_DUPLICATE && strcmp(session.name[1], "Minh") == 0);
+    CHECK(setPlayerName(0, "Lan") == NAME_OK);                                           /* tu doi lai ten minh thi duoc */
+    CHECK(setPlayerName(0, "A|B") == NAME_OK && strcmp(session.name[0], "AB") == 0);     /* ky tu '|' bi bo */
+    CHECK(setPlayerName(0, "123456789012345678901234567890") == NAME_OK
+          && strlen(session.name[0]) == NAME_LEN - 1);                                   /* cat 20 ky tu */
+    resetSession();                                                                      /* ten khong ro ri sang phien sau */
+    CHECK(strcmp(session.name[0], settings.name[0]) == 0 && strcmp(session.name[1], settings.name[1]) == 0);
+}
+
 static void testSaveLoad(void) {
     printf("saveGame / loadGame\n");
     const char *file = "__test_tmp.caro";
@@ -459,6 +479,7 @@ int main(void) {
     testWinLines();
     testLoadState();
     testFileNames();
+    testPlayerNames();
     testSaveLoad();
     testSound();
     testAI();
