@@ -1,6 +1,6 @@
 /* Kiem thu phan logic (model + storage + sound), KHONG can man hinh console.
  * Bien dich va chay tu thu muc du an:
- *   gcc -std=c99 -Wall -Wextra -I. tests/test_logic.c model.c storage.c sound.c ai.c utf8.c -o test_logic.exe -lwinmm
+ *   gcc -std=c99 -Wall -Wextra -I. tests/test_logic.c model.c storage.c sound.c ai.c utf8.c lang.c -o test_logic.exe -lwinmm
  *   test_logic.exe
  */
 #ifndef _CRT_SECURE_NO_WARNINGS
@@ -13,6 +13,8 @@
 #include "sound.h"
 #include "ai.h"
 #include "utf8.h"
+#include "lang.h"
+#include "view.h"   /* chi lay hang so man hinh (SCREEN_W, HUD_W) */
 #include <stdlib.h>
 
 static int failed = 0, passed = 0;
@@ -222,6 +224,102 @@ static void testHistorySettings(void) {
     remove(SETTINGS_FILE);
     rename("__cfg_backup.cfg", SETTINGS_FILE);
     settings = keep;
+}
+
+/* Lay day cac ma dinh dang (%d, %02d, %s, %%...) cua 1 cau, de so 2 ban dich. */
+static void formatSpecs(const char *s, char *out, size_t cap) {
+    size_t n = 0;
+    for (; *s && n + 1 < cap; s++) {
+        if (*s != '%') continue;
+        s++;
+        while (*s && strchr("0123456789.-+ #", *s)) out[n < cap - 1 ? n++ : n] = *s++;
+        if (*s) out[n < cap - 1 ? n++ : n] = *s;
+        out[n < cap - 1 ? n++ : n] = '|';
+        if (!*s) break;
+    }
+    out[n] = '\0';
+}
+
+static void testLang(void) {
+    printf("ngon ngu (Tieng Viet / English)\n");
+    int missing = 0, badFormat = 0, tooWide = 0;
+    for (int id = 0; id < S_COUNT; id++) {
+        const char *vi = trIn(LANG_VI, (StrId)id), *en = trIn(LANG_EN, (StrId)id);
+        if (vi[0] == '\0' || en[0] == '\0') { missing++; printf("    thieu ban dich: ma %d\n", id); }
+        char fv[64], fe[64];
+        formatSpecs(vi, fv, sizeof fv);
+        formatSpecs(en, fe, sizeof fe);
+        if (strcmp(fv, fe) != 0) { badFormat++; printf("    %%d/%%s khac nhau: ma %d (%s / %s)\n", id, fv, fe); }
+        /* moi cau phai vua dong thong bao (SCREEN_W - 1 o) */
+        if (utf8Width(vi) > SCREEN_W - 1 || utf8Width(en) > SCREEN_W - 1) { tooWide++; printf("    qua dai: ma %d\n", id); }
+    }
+    CHECK(missing == 0);
+    CHECK(badFormat == 0);
+    CHECK(tooWide == 0);
+    /* cac dong trong bang thong so phai vua HUD_W o (khi da dien so / ten dai nhat) */
+    static const StrId hud[] = { S_HUD_KEYS_MOVE, S_HUD_KEYS_ENTER, S_HUD_KEYS_SAVE, S_HUD_KEYS_ESC,
+                                 S_AIMODE_EASY, S_AIMODE_MEDIUM, S_AIMODE_HARD, S_AIMODE_2P };
+    int hudOk = 1;
+    for (int l = 0; l < LANG_COUNT; l++) {
+        for (size_t k = 0; k < sizeof hud / sizeof hud[0]; k++)
+            if (utf8Width(trIn(l, hud[k])) > HUD_W) { hudOk = 0; printf("    HUD qua rong: ngon ngu %d ma %d\n", l, (int)hud[k]); }
+        char b[160];
+        snprintf(b, sizeof b, trIn(l, S_HUD_TOTAL_TIME), 99, 59);           if (utf8Width(b) > HUD_W) hudOk = 0;
+        snprintf(b, sizeof b, trIn(l, S_HUD_TIME_LEFT), 15, 0, "  <");      if (utf8Width(b) > HUD_W) hudOk = 0;
+        snprintf(b, sizeof b, trIn(l, S_HUD_LIMIT), 15);                    if (utf8Width(b) > HUD_W) hudOk = 0;
+        snprintf(b, sizeof b, trIn(l, S_HUD_WINLOSS), 99, 99);              if (utf8Width(b) > HUD_W) hudOk = 0;
+        snprintf(b, sizeof b, trIn(l, S_HUD_DRAWS), 99, 999);               if (utf8Width(b) > HUD_W) hudOk = 0;
+        snprintf(b, sizeof b, trIn(l, S_HUD_UNDO), 999);                    if (utf8Width(b) > HUD_W) hudOk = 0;
+        /* menu: muc dai nhat phai vua khung 32 o (2 o le trai) */
+        if (utf8Width(trIn(l, S_MODE_AI_MEDIUM)) > 30 || utf8Width(trIn(l, S_TIME_15)) > 30) hudOk = 0;
+        /* menu cuoi van: o rong 17, chu bat dau o cot thu 3 */
+        if (utf8Width(trIn(l, S_END_REPLAY)) > 14 || utf8Width(trIn(l, S_END_MENU)) > 14) hudOk = 0;
+    }
+    CHECK(hudOk);
+
+    CHECK(strcmp(langCode(LANG_VI), "vi") == 0 && strcmp(langCode(LANG_EN), "en") == 0);
+    CHECK(langFromCode("en") == LANG_EN && langFromCode("vi") == LANG_VI);
+    CHECK(langFromCode("fr") == LANG_VI && langFromCode("") == LANG_VI && langFromCode(NULL) == LANG_VI);
+
+    langSet(LANG_EN);
+    CHECK(langGet() == LANG_EN && strcmp(tr(S_MENU_NEW), "New Game") == 0);
+    CHECK(strcmp(aiName(AI_HARD), "CPU (Hard)") == 0 && strcmp(aiModeText(AI_NONE), "Mode: 2 players") == 0);
+    char d[NAME_LEN];
+    sanitizeName(d, "   ");  CHECK(strcmp(d, "Player") == 0);                /* ten rong theo ngon ngu */
+    langSet(99);             CHECK(langGet() == LANG_VI);                     /* gia tri la -> Tieng Viet */
+    CHECK(strcmp(aiName(AI_HARD), "Máy (Khó)") == 0);
+
+    /* ngon ngu duoc luu vao file cai dat va doc lai */
+    Settings keep = settings;
+    rename(SETTINGS_FILE, "__cfg_backup.cfg");
+    settings.lang = LANG_EN;
+    CHECK(settingsSave() == SAVE_OK);
+    settings.lang = LANG_VI;
+    settingsLoad();
+    CHECK(settings.lang == LANG_EN);
+    FILE *f = fopen(SETTINGS_FILE, "w");                 /* file cu (chua co dong lang) -> Tieng Viet */
+    fputs("sound=1\nvolume=60\nname1=A\nname2=B\n", f);
+    fclose(f);
+    settings.lang = LANG_VI;
+    settingsLoad();
+    CHECK(settings.lang == LANG_VI);
+    remove(SETTINGS_FILE);
+    rename("__cfg_backup.cfg", SETTINGS_FILE);
+
+    /* doi ngon ngu: ten mac dinh doi theo, ten tu dat giu nguyen */
+    settings.lang = LANG_VI;
+    snprintf(settings.name[0], NAME_LEN, "Người chơi 1");
+    snprintf(settings.name[1], NAME_LEN, "Bình");
+    settingsSetLanguage(LANG_EN);
+    CHECK(langGet() == LANG_EN && settings.lang == LANG_EN);
+    CHECK(strcmp(settings.name[0], "Player 1") == 0 && strcmp(settings.name[1], "Bình") == 0);
+    snprintf(settings.name[1], NAME_LEN, "Player 2");
+    settingsSetLanguage(LANG_VI);
+    CHECK(strcmp(settings.name[0], "Người chơi 1") == 0 && strcmp(settings.name[1], "Người chơi 2") == 0);
+    settingsSetLanguage(LANG_VI);                                         /* dat lai cung ngon ngu: khong doi gi */
+    CHECK(strcmp(settings.name[0], "Người chơi 1") == 0 && langGet() == LANG_VI);
+    settings = keep;
+    langSet(LANG_VI);
 }
 
 static void testSaveLoad(void) {
@@ -545,6 +643,7 @@ int main(void) {
     testPlayerNames();
     testUtf8();
     testHistorySettings();
+    testLang();
     testSaveLoad();
     testSound();
     testAI();

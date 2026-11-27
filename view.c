@@ -8,6 +8,7 @@
 #include "view.h"
 #include "ai.h"
 #include "utf8.h"
+#include "lang.h"
 
 /* Mau: 0 den, 1 xanh duong, 2 xanh la, 3 xanh ngoc, 4 do, 5 tim, 6 vang, 7 trang,
  *      8 xam, 9..15 la ban sang cua 1..7 */
@@ -240,12 +241,12 @@ void drawTime(void) {
         int mark = k == 0 ? 1 : -1;
         int s = turnClockShownSeconds(k, now);
         int color = s <= LOW_TIME_SEC ? 12 : (turn == mark ? 15 : 7);   /* ben dang toi luot: sang hon */
-        snprintf(buf, sizeof buf, "    Còn lại: %02d:%02d%s", s / 60, s % 60, turn == mark ? "  <" : "");
+        snprintf(buf, sizeof buf, tr(S_HUD_TIME_LEFT), s / 60, s % 60, turn == mark ? "  <" : "");
         setColor(color, 0);
         printPad(PANEL_X, TOP + 7 + k * 4, buf, HUD_W);
     }
     int s = clockElapsed();
-    snprintf(buf, sizeof buf, "Tổng thời gian ván: %02d:%02d", s / 60, s % 60);
+    snprintf(buf, sizeof buf, tr(S_HUD_TOTAL_TIME), s / 60, s % 60);
     setColor(7, 0);
     printPad(PANEL_X, TOP + 14, buf, HUD_W);
     placeCursor();
@@ -262,12 +263,12 @@ void drawHud(void) {
     setColor(COLOR_TITLE, 0);
     printPad(x, TOP, "======== CARO ========", HUD_W);
     setColor(8, 0);
-    snprintf(buf, sizeof buf, "Giờ mỗi bên: %d phút", timeLimitSec / 60);
+    snprintf(buf, sizeof buf, tr(S_HUD_LIMIT), timeLimitSec / 60);
     printPad(x, TOP + 1, buf, HUD_W);
 
     int p = playerIndex(turn);
     setColor(markColor(turn), 0);
-    snprintf(buf, sizeof buf, "Lượt chơi: %c (%s)", markChar(turn), session.name[p]);
+    snprintf(buf, sizeof buf, tr(S_HUD_TURN), markChar(turn), session.name[p]);
     printPad(x, TOP + 2, buf, HUD_W);
 
     for (int k = 0; k < 2; k++) {
@@ -277,27 +278,27 @@ void drawHud(void) {
         snprintf(buf, sizeof buf, "%c [%c] %s", turn == mark ? '>' : ' ', markChar(mark), session.name[k]);
         printPad(x, y, buf, HUD_W);
         setColor(7, 0);
-        snprintf(buf, sizeof buf, "    Nước đi: %d", moveCount[k]);
+        snprintf(buf, sizeof buf, tr(S_HUD_MOVES), moveCount[k]);
         printPad(x, y + 1, buf, HUD_W);
-        snprintf(buf, sizeof buf, "    Thắng: %d   Thua: %d", session.wins[k],
+        snprintf(buf, sizeof buf, tr(S_HUD_WINLOSS), session.wins[k],
                  session.games - session.wins[k] - session.draws);
         printPad(x, y + 2, buf, HUD_W);
     }
 
     setColor(7, 0);
-    snprintf(buf, sizeof buf, "Hòa: %d    Tổng số ván: %d", session.draws, session.games);
+    snprintf(buf, sizeof buf, tr(S_HUD_DRAWS), session.draws, session.games);
     printPad(x, TOP + 12, buf, HUD_W);
     setColor(8, 0);
     printPad(x, TOP + 13, aiModeText(aiLevel), HUD_W);
     drawTime();
 
     setColor(8, 0);
-    printPad(x, HELP_Y, "W/A/S/D, mũi tên: di chuyển", HUD_W);
-    printPad(x, HELP_Y + 1, "Enter: đánh cờ", HUD_W);
-    printPad(x, HELP_Y + 2, "L: lưu ván    T: tải ván", HUD_W);
-    printPad(x, HELP_Y + 3, "Esc: thoát về menu", HUD_W);
+    printPad(x, HELP_Y, tr(S_HUD_KEYS_MOVE), HUD_W);
+    printPad(x, HELP_Y + 1, tr(S_HUD_KEYS_ENTER), HUD_W);
+    printPad(x, HELP_Y + 2, tr(S_HUD_KEYS_SAVE), HUD_W);
+    printPad(x, HELP_Y + 3, tr(S_HUD_KEYS_ESC), HUD_W);
     if (aiLevel != AI_NONE) {                   /* di lai chi co khi choi voi may */
-        snprintf(buf, sizeof buf, "U: đi lại (đã dùng %d lần)", undoCount);
+        snprintf(buf, sizeof buf, tr(S_HUD_UNDO), undoCount);
         printPad(x, HELP_Y + 4, buf, HUD_W);
     } else {
         printPad(x, HELP_Y + 4, "", HUD_W);
@@ -346,23 +347,23 @@ static void drawBanner(int res, int color) {
     if (aiLevel != AI_NONE && res != RES_DRAW) {       /* dau voi may */
         int aiWon = res == (AI_MARK == 1 ? RES_X_WIN : RES_O_WIN);
         if (aiWon)
-            snprintf(buf, sizeof buf, "%s ĐÃ THẮNG! Thử lại nhé!", aiName(aiLevel));
+            snprintf(buf, sizeof buf, tr(S_AI_WON), aiName(aiLevel));
         else
-            snprintf(buf, sizeof buf, "CHÚC MỪNG %s ĐÃ THẮNG %s!",
+            snprintf(buf, sizeof buf, tr(S_YOU_BEAT_AI),
                      session.name[playerIndex(-AI_MARK)], aiName(aiLevel));
     } else {
         switch (res) {
             case RES_X_WIN:
-                snprintf(buf, sizeof buf, "CHÚC MỪNG %s (X) ĐÃ CHIẾN THẮNG!", session.name[0]);
+                snprintf(buf, sizeof buf, tr(S_X_WON), session.name[0]);
                 break;
             case RES_O_WIN:
-                snprintf(buf, sizeof buf, "CHÚC MỪNG %s (O) ĐÃ CHIẾN THẮNG!", session.name[1]);
+                snprintf(buf, sizeof buf, tr(S_O_WON), session.name[1]);
                 break;
             default:
-                snprintf(buf, sizeof buf, "Hai bên hòa nhau!");
+                snprintf(buf, sizeof buf, "%s", tr(S_DRAW));
         }
     }
-    snprintf(out, sizeof out, "*** %s%s ***", finishByTimeout && res != RES_DRAW ? "HẾT GIỜ! " : "", buf);
+    snprintf(out, sizeof out, "*** %s%s ***", finishByTimeout && res != RES_DRAW ? tr(S_TIMEOUT_PREFIX) : "", buf);
     showMessage(out, color);
 }
 
@@ -411,10 +412,10 @@ void endMenu(int retryText, int retryBg, int exitText, int exitBg) {
     }
     setColor(retryText, retryBg);
     goToXY(chessBoard[5][4].X + 2, chessBoard[5][4].Y);
-    printText("Chơi lại!");
+    printText(tr(S_END_REPLAY));
     setColor(exitText, exitBg);
     goToXY(chessBoard[6][4].X + 2, chessBoard[6][4].Y);
-    printText("Về menu!");
+    printText(tr(S_END_MENU));
 }
 
 void endMenuBorder(int row) {
@@ -463,7 +464,7 @@ void drawMenu(const char *title, const char *const items[], int n, int sel) {
         setColor(i == sel ? 0 : 7, i == sel ? COLOR_HILITE_BG : 0);
         printPad(x, 9 + 2 * i, buf, w);
     }
-    drawHelpLine(SCREEN_H - 2, "W/S hoặc mũi tên: chọn    Enter: đồng ý    Esc: quay lại");
+    drawHelpLine(SCREEN_H - 2, tr(S_HELP_MENU));
 }
 
 void drawSettings(int sel) {
@@ -472,24 +473,26 @@ void drawSettings(int sel) {
     int filled = settings.volume / 10;
     for (int k = 0; k < 10; k++) bar[k] = k < filled ? '#' : '-';
     bar[10] = '\0';
-    snprintf(line[0], sizeof line[0], "Âm thanh         : %s", settings.soundOn ? "BẬT" : "TẮT");
-    snprintf(line[1], sizeof line[1], "Âm lượng         : [%s] %3d%%", bar, settings.volume);
-    snprintf(line[2], sizeof line[2], "Tên người chơi 1 : %s", settings.name[0]);
-    snprintf(line[3], sizeof line[3], "Tên người chơi 2 : %s", settings.name[1]);
-    snprintf(line[4], sizeof line[4], "Nghe thử âm thanh");
-    snprintf(line[5], sizeof line[5], "Quay lại");
+    snprintf(line[0], sizeof line[0], tr(S_SET_SOUND), tr(settings.soundOn ? S_ON : S_OFF));
+    snprintf(line[1], sizeof line[1], tr(S_SET_VOLUME), bar, settings.volume);
+    snprintf(line[2], sizeof line[2], tr(S_SET_NAME1), settings.name[0]);
+    snprintf(line[3], sizeof line[3], tr(S_SET_NAME2), settings.name[1]);
+    snprintf(line[4], sizeof line[4], tr(S_SET_LANGUAGE), tr(S_LANG_NAME));
+    snprintf(line[5], sizeof line[5], "%s", tr(S_SET_TEST_SOUND));
+    snprintf(line[6], sizeof line[6], "%s", tr(S_BACK));
 
     int w = 48, x = (SCREEN_W - w) / 2;
     setColor(COLOR_TITLE, 0);
-    printPad((SCREEN_W - 7) / 2, 5, "CÀI ĐẶT", 7);
+    int tw = utf8Width(tr(S_TITLE_SETTINGS));
+    printPad((SCREEN_W - tw) / 2, 5, tr(S_TITLE_SETTINGS), tw);
     for (int i = 0; i < SETTINGS_ITEMS; i++) {
         char buf[200];
         snprintf(buf, sizeof buf, "  %s", line[i]);
         setColor(i == sel ? 0 : 7, i == sel ? COLOR_HILITE_BG : 0);
         printPad(x, 9 + 2 * i, buf, w);
     }
-    drawHelpLine(SCREEN_H - 3, "W/S: chọn    A/D hoặc mũi tên trái/phải: chỉnh    Enter: đồng ý/sửa tên");
-    drawHelpLine(SCREEN_H - 2, "Esc: quay lại (tên mới áp dụng từ ván mới)");
+    drawHelpLine(SCREEN_H - 3, tr(S_HELP_SETTINGS1));
+    drawHelpLine(SCREEN_H - 2, tr(S_HELP_SETTINGS2));
 }
 
 void drawHistory(int offset) {
@@ -501,27 +504,28 @@ void drawHistory(int offset) {
         else dw++;
     }
     setColor(COLOR_TITLE, 0);
-    printPad(2, 1, "LỊCH SỬ ĐẤU", 40);
+    printPad(2, 1, tr(S_TITLE_HISTORY), 40);
     setColor(7, 0);
-    snprintf(buf, sizeof buf, "Tổng: %d ván    X thắng: %d    O thắng: %d    Hòa: %d", historyCount, xw, ow, dw);
+    snprintf(buf, sizeof buf, tr(S_HIST_SUMMARY), historyCount, xw, ow, dw);
     printPad(2, 2, buf, SCREEN_W - 4);
     setColor(11, 0);
     /* cac cot (dem theo ky tu): #(3)  thoi diem(16)  nguoi X(12) vs nguoi O(12)  ket qua(8) nuoc(4)  gio */
     buf[0] = '\0';
     appendCol(buf, sizeof buf, "  #  ", 5);
-    appendCol(buf, sizeof buf, "Thời điểm", 18);
-    appendCol(buf, sizeof buf, "Người X", 16);
-    appendCol(buf, sizeof buf, "Người O", 14);
-    appendCol(buf, sizeof buf, "Kết quả", 8);
-    appendCol(buf, sizeof buf, " Nước", 7);
-    appendCol(buf, sizeof buf, "Giờ", 5);
+    appendCol(buf, sizeof buf, tr(S_HIST_COL_WHEN), 18);
+    appendCol(buf, sizeof buf, tr(S_HIST_COL_X), 16);
+    appendCol(buf, sizeof buf, tr(S_HIST_COL_O), 14);
+    appendCol(buf, sizeof buf, tr(S_HIST_COL_RESULT), 8);
+    appendCol(buf, sizeof buf, " ", 1);
+    appendCol(buf, sizeof buf, tr(S_HIST_COL_MOVES), 6);
+    appendCol(buf, sizeof buf, tr(S_HIST_COL_TIME), 5);
     printPad(2, 4, buf, SCREEN_W - 4);
     setColor(7, 0);
     for (int k = 0; k < HISTORY_ROWS; k++) {
         int idx = historyCount - 1 - offset - k;           /* moi nhat truoc */
         if (idx < 0) { printPad(2, 5 + k, "", SCREEN_W - 4); continue; }
         const HistoryEntry *e = &history[idx];
-        const char *res = e->result == RES_X_WIN ? "X thắng" : (e->result == RES_O_WIN ? "O thắng" : "Hòa");
+        const char *res = tr(e->result == RES_X_WIN ? S_HIST_X_WIN : (e->result == RES_O_WIN ? S_HIST_O_WIN : S_HIST_DRAW));
         char num[32];
         buf[0] = '\0';
         snprintf(num, sizeof num, "%3d  ", idx + 1);
@@ -539,10 +543,10 @@ void drawHistory(int offset) {
     }
     if (historyCount == 0) {
         setColor(8, 0);
-        printPad(2, 6, "(Chưa có ván nào được ghi lại)", 40);
+        printPad(2, 6, tr(S_HIST_EMPTY), 40);
     }
-    drawHelpLine(SCREEN_H - 3, "W/S hoặc mũi tên: cuộn    PgUp/PgDn: nhảy trang    C: xóa lịch sử");
-    drawHelpLine(SCREEN_H - 2, "Esc: quay lại");
+    drawHelpLine(SCREEN_H - 3, tr(S_HELP_HISTORY1));
+    drawHelpLine(SCREEN_H - 2, tr(S_HELP_HISTORY2));
     setColor(7, 0);
 }
 
@@ -566,14 +570,14 @@ void clearInputField(int x, int y) {
 void drawSaveList(int x, int y, FileName *names, int n) {
     char buf[64];
     setColor(11, 0);
-    printPad(x, y, n > 0 ? "File đã lưu:" : "(Chưa có file lưu nào)", SAVE_LIST_W);
+    printPad(x, y, tr(n > 0 ? S_SAVE_LIST_TITLE : S_SAVE_LIST_EMPTY), SAVE_LIST_W);
     setColor(7, 0);
     for (int k = 0; k < SAVE_LIST_ROWS; k++) {
         snprintf(buf, sizeof buf, "  %s", k < n ? names[k] : "");
         printPad(x, y + 1 + k, buf, SAVE_LIST_W);
     }
     setColor(8, 0);
-    if (n > SAVE_LIST_ROWS) snprintf(buf, sizeof buf, "  ... và %d file khác", n - SAVE_LIST_ROWS);
+    if (n > SAVE_LIST_ROWS) snprintf(buf, sizeof buf, tr(S_SAVE_LIST_MORE), n - SAVE_LIST_ROWS);
     else buf[0] = '\0';
     printPad(x, y + 1 + SAVE_LIST_ROWS, buf, SAVE_LIST_W);
     setColor(7, 0);

@@ -411,6 +411,7 @@ int main(int argc, char **argv) {
     down(3); enter();
     check("Cai dat hien am thanh TẮT + ten An / Bình (dat ten khi thi dau khong doi Cai dat)", waitFor("CÀI ĐẶT", 2000)
           && onScreen("Âm thanh         : TẮT") && onScreen("Tên người chơi 1 : An") && onScreen("Tên người chơi 2 : Bình"));
+    check("Cai dat co muc 'Ngôn ngữ : Tiếng Việt'", onScreen("Ngôn ngữ         : Tiếng Việt"));
     {
         char buf[500]; readAll("caro_settings.cfg", buf, sizeof buf);
         check("File cai dat giu nguyen ten co dau (UTF-8)", strstr(buf, "name2=Bình") != NULL);
@@ -418,8 +419,58 @@ int main(int argc, char **argv) {
     esc(); waitFor("C A R O", 2000);
     {
         char buf[500]; readAll("caro_settings.cfg", buf, sizeof buf);
-        check("Thoat Cai dat: file cai dat ghi lai van giu ten 'Bình'", strstr(buf, "name2=Bình\n") != NULL);
+        check("Thoat Cai dat: file cai dat ghi lai van giu ten 'Bình', ngon ngu 'vi'", strstr(buf, "name2=Bình\n") != NULL
+              && strstr(buf, "lang=vi\n") != NULL);
     }
+
+    /* ================= F. Doi ngon ngu sang tieng Anh ================= */
+    logp("\n=== F. NGON NGU: TIENG ANH ===\n");
+    down(3); enter(); waitFor("CÀI ĐẶT", 2000);
+    down(4); enter();                                     /* muc Ngon ngu: Enter -> English */
+    check("Enter o muc Ngon ngu -> giao dien Cai dat doi ngay sang tieng Anh", waitFor("SETTINGS", 2000)
+          && onScreen("Language         : English") && onScreen("Sound            : OFF")
+          && onScreen("Player 1 name    : An") && onScreen("Player 2 name    : Bình") && onScreen("Test sound")
+          && onScreen("Esc: back (new names apply from the next game)"));
+    check("Khong con chu tieng Viet sot lai tren man hinh Cai dat", !seenNow("CÀI ĐẶT") && !seenNow("Âm thanh")
+          && !seenNow("Ngôn ngữ") && !seenNow("Quay lại"));
+    arrow(VK_RIGHT);                                      /* mui ten phai: doi lai Tieng Viet */
+    check("Mui ten phai: doi lai Tieng Viet", waitFor("Ngôn ngữ         : Tiếng Việt", 1500) && onScreen("CÀI ĐẶT"));
+    key('a');                                             /* A (= trai): doi sang English lan nua */
+    check("Phim A: sang English lan nua", waitFor("Language         : English", 1500));
+    esc();
+    check("Menu chinh bang tieng Anh", waitFor("New Game", 2000) && onScreen("Load Game") && onScreen("Match History")
+          && onScreen("Settings") && onScreen("Exit") && onScreen("W/S or arrow keys: select    Enter: OK    Esc: back"));
+    {
+        char buf[500]; readAll("caro_settings.cfg", buf, sizeof buf);
+        check("File cai dat luu 'lang=en'", strstr(buf, "lang=en\n") != NULL);
+    }
+    enter();
+    check("Menu NEW GAME tieng Anh", waitFor("NEW GAME", 2000) && onScreen("2 players") && onScreen("Play vs CPU - Easy")
+          && onScreen("Play vs CPU - Medium") && onScreen("Play vs CPU - Hard") && onScreen("Back"));
+    down(1); enter();
+    check("Menu TIME LIMIT tieng Anh", waitFor("TIME LIMIT", 2000) && onScreen("5 minutes per side")
+          && onScreen("15 minutes per side"));
+    enter();
+    check("Man hinh dat ten tieng Anh", waitFor("PLAYER NAMES", 2000) && onScreen("Player X (default \"An\")")
+          && onScreen("Up to 20 characters"));
+    enter();
+    check("HUD tieng Anh, may ten 'CPU (Easy)'", waitFor("Time per side: 5 min", 3000) && onScreen("Turn: X (An)")
+          && onScreen("[O] CPU (Easy)") && onScreen("Mode: vs CPU - Easy") && onScreen("Time left: 05:00")
+          && onScreen("U: undo (used 0 times)") && onScreen("Enter: place mark") && onScreen("Esc: back to menu"));
+    dump("van dau may bang tieng Anh");
+    curR = curC = 0;
+    playAt(5, 5); Sleep(1200); syncCursor();
+    check("Tieng Anh: may van danh binh thuong", countMarks('X') == 1 && countMarks('O') == 1);
+    key('u');
+    check("Tieng Anh: thong bao di lai", waitFor("Move undone. Your turn again.", 1500) && onScreen("U: undo (used 1 times)"));
+    esc();
+    check("Tieng Anh: hoi thoat ve menu", waitFor("Back to menu?  Y: save and leave", 1500));
+    key('n'); waitFor("New Game", 2000);
+    down(2); enter();
+    check("Lich su tieng Anh", waitFor("MATCH HISTORY", 2000) && onScreen("Total: 3 games") && onScreen("Player X")
+          && onScreen("Result") && onScreen("X wins") && onScreen("O wins"));
+    esc(); waitFor("New Game", 2000);
+
     down(4); enter();
     DWORD w = WaitForSingleObject(pi.hProcess, 4000);
     DWORD code = 99; GetExitCodeProcess(pi.hProcess, &code);

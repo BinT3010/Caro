@@ -34,6 +34,7 @@ typedef struct {
     int soundOn;            /* 1 = bat am thanh */
     int volume;             /* 0..100 */
     char name[2][NAME_LEN];
+    int lang;               /* LANG_VI / LANG_EN (lang.h) */
 } Settings;
 
 extern point chessBoard[BOARD_SIZE][BOARD_SIZE];

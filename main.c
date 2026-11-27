@@ -9,13 +9,15 @@
 #include "storage.h"
 #include "sound.h"
 #include "control.h"
+#include "lang.h"
 
 int main(void) {
-    SetConsoleTitleW(L"Cờ Caro");
+    SetConsoleTitleA("CARO");
     srand((unsigned)time(NULL));               /* AI chon ngau nhien giua cac nuoc ngang diem */
     fixConsole();                              /* co dinh kich thuoc cua so */
     resizeConsole(SCREEN_W, SCREEN_H);
     settingsLoad();                            /* doc am thanh + ten nguoi choi da luu */
+    langSet(settings.lang);                    /* ngon ngu da chon (Tieng Viet / English) */
     soundConfigure(settings.soundOn, settings.volume);
     resetSession();
     resetData();

@@ -57,3 +57,6 @@ int  historyClear(void);
 /* ---- cai dat ---- */
 void settingsLoad(void);
 int  settingsSave(void);
+/* Doi ngon ngu (LANG_VI / LANG_EN) ngay lap tuc. Ten nguoi choi con la ten mac dinh
+ * ("Người chơi 1") thi doi theo ngon ngu moi ("Player 1"); ten tu dat giu nguyen. */
+void settingsSetLanguage(int lang);

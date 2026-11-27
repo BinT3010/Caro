@@ -9,6 +9,7 @@
 #include "storage.h"
 #include "ai.h"
 #include "utf8.h"
+#include "lang.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -47,7 +48,7 @@ void sanitizeName(char *dst, const char *src) {
     }
     while (n > 0 && tmp[n - 1] == ' ') n--;             /* cat khoang trang cuoi */
     tmp[n] = '\0';
-    if (n == 0) snprintf(dst, NAME_LEN, "Người chơi");
+    if (n == 0) snprintf(dst, NAME_LEN, "%s", tr(S_DEFAULT_PLAYER));
     else snprintf(dst, NAME_LEN, "%s", tmp);
 }
 
@@ -308,6 +309,7 @@ void settingsLoad(void) {
         }
         else if (strcmp(key, "name1") == 0) sanitizeName(settings.name[0], val);
         else if (strcmp(key, "name2") == 0) sanitizeName(settings.name[1], val);
+        else if (strcmp(key, "lang") == 0) settings.lang = langFromCode(val);
     }
     fclose(f);
 }
@@ -315,7 +317,19 @@ void settingsLoad(void) {
 int settingsSave(void) {
     FILE *f = fopen(SETTINGS_FILE, "w");
     if (!f) return SAVE_ERR_IO;
-    fprintf(f, "sound=%d\nvolume=%d\nname1=%s\nname2=%s\n", settings.soundOn, settings.volume,
-            settings.name[0], settings.name[1]);
+    fprintf(f, "sound=%d\nvolume=%d\nname1=%s\nname2=%s\nlang=%s\n", settings.soundOn, settings.volume,
+            settings.name[0], settings.name[1], langCode(settings.lang));
     return fclose(f) == 0 ? SAVE_OK : SAVE_ERR_IO;
+}
+
+void settingsSetLanguage(int lang) {
+    int from = settings.lang;
+    int to = lang == LANG_EN ? LANG_EN : LANG_VI;
+    for (int k = 0; k < 2; k++) {
+        StrId def = k == 0 ? S_DEFAULT_PLAYER1 : S_DEFAULT_PLAYER2;
+        if (strcmp(settings.name[k], trIn(from, def)) == 0)
+            snprintf(settings.name[k], NAME_LEN, "%s", trIn(to, def));
+    }
+    settings.lang = to;
+    langSet(to);
 }

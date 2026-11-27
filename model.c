@@ -20,7 +20,7 @@ int undoCount;
 static struct { int r, c, mark; } hist[BOARD_SIZE * BOARD_SIZE];
 static int histLen;
 
-Settings settings = { 1, 60, { "Người chơi 1", "Người chơi 2" } };
+Settings settings = { 1, 60, { "Người chơi 1", "Người chơi 2" }, 0 /* LANG_VI */ };
 
 /* ---------------- dong ho ---------------- */
 static time_t clockBegan;

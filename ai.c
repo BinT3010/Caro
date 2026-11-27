@@ -3,23 +3,24 @@
 #endif
 #include <stdlib.h>
 #include "ai.h"
+#include "lang.h"
 
 int aiLevel = AI_NONE;
 
 const char *aiName(int level) {
     switch (level) {
-        case AI_MEDIUM: return "Máy (Trung bình)";
-        case AI_HARD:   return "Máy (Khó)";
-        default:        return "Máy (Dễ)";
+        case AI_MEDIUM: return tr(S_AI_MEDIUM);
+        case AI_HARD:   return tr(S_AI_HARD);
+        default:        return tr(S_AI_EASY);
     }
 }
 
 const char *aiModeText(int level) {
     switch (level) {
-        case AI_EASY:   return "Chế độ: đấu với máy - Dễ";
-        case AI_MEDIUM: return "Chế độ: đấu với máy - Trung bình";
-        case AI_HARD:   return "Chế độ: đấu với máy - Khó";
-        default:        return "Chế độ: 2 người chơi";
+        case AI_EASY:   return tr(S_AIMODE_EASY);
+        case AI_MEDIUM: return tr(S_AIMODE_MEDIUM);
+        case AI_HARD:   return tr(S_AIMODE_HARD);
+        default:        return tr(S_AIMODE_2P);
     }
 }
 

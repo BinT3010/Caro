@@ -20,7 +20,7 @@
 #define HUD_W 34                             /* chieu rong bang thong so (PANEL_X + HUD_W < SCREEN_W) */
 #define HELP_Y (TOP + 16)                    /* 4 dong huong dan phim trong bang thong so */
 #define HISTORY_ROWS 18                      /* so dong lich su moi trang */
-#define SETTINGS_ITEMS 6
+#define SETTINGS_ITEMS 7               /* am thanh, am luong, 2 ten, ngon ngu, nghe thu, quay lai */
 
 /* Danh sach file da luu: tieu de + SAVE_LIST_ROWS ten + 1 dong "con N file" */
 #define SAVE_LIST_ROWS 8

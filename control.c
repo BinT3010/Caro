@@ -13,6 +13,7 @@
 #include "sound.h"
 #include "ai.h"
 #include "utf8.h"
+#include "lang.h"
 
 #define AI_DELAY_MS 350          /* may "suy nghi" mot chut cho nguoi choi kip nhin */
 
@@ -150,29 +151,29 @@ static int promptSave(int listX, int listY, int promptY) {
     drawSaveList(listX, listY, names, n);
     int saved = 0;
     for (;;) {
-        if (!readText(3, promptY, "Nhập tên file để lưu (Esc: hủy): ", name, FILE_BASE_MAX + 1, FILE_BASE_MAX, TEXT_FILE)
+        if (!readText(3, promptY, tr(S_PROMPT_SAVE), name, FILE_BASE_MAX + 1, FILE_BASE_MAX, TEXT_FILE)
             || name[0] == '\0')
             break;
         if (!normalizeFileName(name, sizeof name)) {
-            showMessage("Tên file không hợp lệ! (không dùng CON, NUL, COM1...; không bắt đầu bằng '.')", 12);
+            showMessage(tr(S_BAD_FILE_NAME_LONG), 12);
             soundPlay(SND_ERROR);
             continue;
         }
         if (fileExists(name)) {
             showCursor(0);
-            if (!confirm("File đã tồn tại. Ghi đè? (Y: có / N: không)")) { showCursor(1); continue; }
+            if (!confirm(tr(S_CONFIRM_OVERWRITE))) { showCursor(1); continue; }
             showCursor(1);
         }
         int r = saveGame(name);
         if (r == SAVE_OK) {
             char msg[100];
-            snprintf(msg, sizeof msg, "Đã lưu ván cờ vào file: %s", name);
+            snprintf(msg, sizeof msg, tr(S_SAVED), name);
             showMessage(msg, 10);
             soundPlay(SND_SAVE);
             saved = 1;
             break;
         }
-        showMessage("Không ghi được file! Thử tên khác.", 12);
+        showMessage(tr(S_SAVE_FAILED), 12);
         soundPlay(SND_ERROR);
     }
     clearInputField(3, promptY);
@@ -188,25 +189,24 @@ static int promptLoad(int listX, int listY, int promptY) {
     drawSaveList(listX, listY, names, n);
     int loaded = 0;
     for (;;) {
-        if (!readText(3, promptY, "Nhập tên file cần tải (Esc: hủy): ", name, FILE_BASE_MAX + 1, FILE_BASE_MAX, TEXT_FILE)
+        if (!readText(3, promptY, tr(S_PROMPT_LOAD), name, FILE_BASE_MAX + 1, FILE_BASE_MAX, TEXT_FILE)
             || name[0] == '\0')
             break;
         if (!normalizeFileName(name, sizeof name)) {
-            showMessage("Tên file không hợp lệ!", 12);
+            showMessage(tr(S_BAD_FILE_NAME), 12);
             soundPlay(SND_ERROR);
             continue;
         }
         int r = loadGame(name);
         if (r == SAVE_OK) {
             char msg[100];
-            snprintf(msg, sizeof msg, "Đã tải ván cờ từ file: %s", name);
+            snprintf(msg, sizeof msg, tr(S_LOADED_FROM), name);
             showMessage(msg, 10);
             soundPlay(SND_LOAD);
             loaded = 1;
             break;
         }
-        showMessage(r == SAVE_ERR_IO ? "Không mở được file (kiểm tra lại tên)!"
-                                     : "File không hợp lệ hoặc đã bị sửa hỏng!", 12);
+        showMessage(tr(r == SAVE_ERR_IO ? S_LOAD_IO_ERROR : S_LOAD_BAD_FILE), 12);
         soundPlay(SND_ERROR);
     }
     clearInputField(3, promptY);
@@ -265,7 +265,7 @@ static int processFinish(int res) {
 
 /* ESC: hoi co luu khong. Tra ve 1 neu thoat ve menu. */
 static int askLeave(void) {
-    showMessage("Thoát về menu?  Y: lưu rồi thoát   N: thoát không lưu   phím khác: ở lại", 14);
+    showMessage(tr(S_ASK_LEAVE), 14);
     int c = toupper(_getch());
     if (c == 0 || c == 224) _getch();
     clearMessage();
@@ -297,7 +297,7 @@ static int timeoutResult(void) {
 /* Luot cua may. Tra ve ket qua van co (RES_NONE neu van tiep tuc).
  * Dong ho cua may cung chay trong luc may "suy nghi". */
 static int aiMove(void) {
-    showMessage("Máy đang suy nghĩ...", 8);
+    showMessage(tr(S_AI_THINKING), 8);
     DWORD start = GetTickCount();
     int r = 0, c = 0;
     if (!aiChooseMove(aiLevel, turn, &r, &c)) return RES_DRAW;   /* khong con o trong */
@@ -317,14 +317,14 @@ static int aiMove(void) {
 static void undoVsAi(void) {
     if (aiLevel == AI_NONE) {
         soundPlay(SND_ERROR);
-        showMessage("Chỉ được đi lại khi chơi với máy!", 12);
+        showMessage(tr(S_UNDO_ONLY_AI), 12);
         return;
     }
     int human = -AI_MARK;
     int need = lastMoveMark() == AI_MARK ? 2 : 1;   /* nuoc cua may + nuoc cua nguoi */
     if (moveHistoryLength() < need) {
         soundPlay(SND_ERROR);
-        showMessage("Không còn nước nào để đi lại!", 12);
+        showMessage(tr(S_UNDO_NONE), 12);
         return;
     }
     int r, c, hr = currX, hc = currY;
@@ -335,7 +335,7 @@ static void undoVsAi(void) {
     currY = hc;                                     /* con tro ve o nguoi choi vua danh */
     soundPlay(SND_LOAD);
     drawHud();
-    showMessage("Đã đi lại. Đến lượt bạn đánh lại.", 10);
+    showMessage(tr(S_UNDO_DONE), 10);
 }
 
 static int gameLoop(void) {
@@ -355,7 +355,7 @@ static int gameLoop(void) {
             case KEY_ENTER: {
                 if (!checkLegalEnter(turn)) {          /* o da duoc danh */
                     soundPlay(SND_ERROR);
-                    showMessage("Ô này đã được đánh rồi, hãy chọn ô khác!", 12);
+                    showMessage(tr(S_CELL_TAKEN), 12);
                     break;
                 }
                 clearMessage();
@@ -384,7 +384,7 @@ static int gameLoop(void) {
                 pauseClocks();
                 if (promptLoad(PANEL_X, GAME_LIST_Y, PROMPT_Y)) {
                     drawGameScreen();
-                    showMessage("Đã tải ván cờ. Tiếp tục chơi!", 10);
+                    showMessage(tr(S_LOADED_CONTINUE), 10);
                 } else {
                     drawHud();
                 }
@@ -427,27 +427,26 @@ static void askPlayerNames(int level) {
     char label[200], buf[NAME_LEN];
     clearScreen();
     setColor(14, 0);
-    printAt(3, 2, "ĐẶT TÊN NGƯỜI CHƠI");
+    printAt(3, 2, tr(S_TITLE_NAMES));
     setColor(8, 0);
-    snprintf(label, sizeof label, "Enter để trống hoặc Esc: giữ tên mặc định. Tối đa %d ký tự, gõ được tiếng Việt.",
-             NAME_CHARS);
+    snprintf(label, sizeof label, tr(S_NAMES_HELP), NAME_CHARS);
     printAt(3, 3, label);
     setColor(7, 0);
     for (int who = 0; who < count; who++) {
         int y = 6 + 2 * who;
-        snprintf(label, sizeof label, "Người chơi %c (mặc định \"%s\"): ", marks[who], session.name[who]);
+        snprintf(label, sizeof label, tr(S_NAME_PROMPT), marks[who], session.name[who]);
         for (;;) {
             if (!readText(3, y, label, buf, NAME_LEN, NAME_CHARS, TEXT_NAME)) buf[0] = '\0';   /* Esc = giu ten */
             if (setPlayerName(who, buf) != NAME_DUPLICATE) break;
-            showMessage("Tên bị trùng với người chơi còn lại, hãy nhập tên khác!", 12);
+            showMessage(tr(S_NAME_DUPLICATE), 12);
         }
         clearMessage();
         clearInputField(3, y);
-        snprintf(label, sizeof label, "Người chơi %c: ", marks[who]);
+        snprintf(label, sizeof label, tr(S_NAME_DONE), marks[who]);
         drawInputField(3, y, label, session.name[who]);
     }
     if (level != AI_NONE) {
-        snprintf(label, sizeof label, "Đối thủ       O: ");
+        snprintf(label, sizeof label, "%s", tr(S_NAME_OPPONENT));
         drawInputField(3, 8, label, session.name[playerIndex(AI_MARK)]);
     }
     showCursor(0);
@@ -469,13 +468,13 @@ static void newGame(int level, int limitSeconds) {
 static void loadFromMenu(void) {
     clearScreen();
     setColor(14, 0);
-    printAt(3, 2, "TẢI VÁN - tải ván cờ đã lưu");
+    printAt(3, 2, tr(S_TITLE_LOAD));
     setColor(7, 0);
     resetSession();
     resetData();
     if (promptLoad(3, 5, 24)) {
         drawGameScreen();
-        showMessage("Đã tải ván cờ. Tiếp tục chơi!", 10);
+        showMessage(tr(S_LOADED_CONTINUE), 10);
         resumeClocks();
         playMatch();
     }
@@ -509,6 +508,13 @@ static void toggleSound(void) {
     soundPlay(SND_PLACE_X);
 }
 
+/* Doi Tieng Viet <-> English (ap dung ngay, luu khi roi man hinh Cai dat). */
+static void toggleLanguage(void) {
+    settingsSetLanguage(settings.lang == LANG_VI ? LANG_EN : LANG_VI);
+    clearScreen();                             /* do dai cac dong thay doi: ve lai ca man hinh */
+    soundPlay(SND_MENU);
+}
+
 static void settingsScreen(void) {
     int sel = 0;
     clearScreen();
@@ -521,6 +527,7 @@ static void settingsScreen(void) {
         else if (key == KEY_LEFT || key == KEY_RIGHT) {
             if (sel == 0) toggleSound();
             else if (sel == 1) adjustVolume(key == KEY_RIGHT ? 10 : -10);
+            else if (sel == 4) toggleLanguage();
         }
         else if (key == KEY_ENTER) {
             if (sel == 0) toggleSound();
@@ -528,13 +535,14 @@ static void settingsScreen(void) {
             else if (sel == 2 || sel == 3) {
                 char buf[NAME_LEN];
                 int who = sel - 2;
-                if (readText(20, 9 + 2 * SETTINGS_ITEMS + 1, "Nhập tên mới (Enter: giữ nguyên): ", buf, NAME_LEN, NAME_CHARS, TEXT_NAME)
+                if (readText(20, 9 + 2 * SETTINGS_ITEMS + 1, tr(S_PROMPT_NEW_NAME), buf, NAME_LEN, NAME_CHARS, TEXT_NAME)
                     && buf[0] != '\0')
                     sanitizeName(settings.name[who], buf);
                 clearInputField(20, 9 + 2 * SETTINGS_ITEMS + 1);
                 showCursor(0);
             }
-            else if (sel == 4) soundPlay(SND_WIN);
+            else if (sel == 4) toggleLanguage();
+            else if (sel == 5) soundPlay(SND_WIN);
             else break;
         }
         else if (key == KEY_ESC) break;
@@ -558,7 +566,7 @@ static void historyScreen(void) {
         else if (key == KEY_PGUP) off -= HISTORY_ROWS;
         else if (key == KEY_PGDN) off += HISTORY_ROWS;
         else if (key == 'C' && historyCount > 0) {
-            if (confirm("Xóa TOÀN BỘ lịch sử đấu? (Y: có / N: không)")) {
+            if (confirm(tr(S_CONFIRM_CLEAR_HISTORY))) {
                 historyClear();
                 off = 0;
                 soundPlay(SND_SAVE);
@@ -570,8 +578,8 @@ static void historyScreen(void) {
 
 /* Chon thoi gian cho moi ben. Tra ve so giay, 0 neu quay lai. */
 static int timeMenu(void) {
-    static const char *const items[] = { "5 phút mỗi bên", "10 phút mỗi bên", "15 phút mỗi bên", "Quay lại" };
-    switch (runMenu("THỜI GIAN", items, 4)) {
+    const char *const items[] = { tr(S_TIME_5), tr(S_TIME_10), tr(S_TIME_15), tr(S_BACK) };
+    switch (runMenu(tr(S_TITLE_TIME), items, 4)) {
         case 0: return TIME_5_MIN;
         case 1: return TIME_10_MIN;
         case 2: return TIME_15_MIN;
@@ -581,11 +589,11 @@ static int timeMenu(void) {
 
 /* New Game: chon che do choi, roi chon thoi gian (Quay lai o buoc thoi gian -> chon lai che do). */
 static void newGameMenu(void) {
-    static const char *const items[] = { "2 người chơi", "Chơi với máy - Dễ", "Chơi với máy - Trung bình",
-                                         "Chơi với máy - Khó", "Quay lại" };
+    const char *const items[] = { tr(S_MODE_2P), tr(S_MODE_AI_EASY), tr(S_MODE_AI_MEDIUM),
+                                  tr(S_MODE_AI_HARD), tr(S_BACK) };
     static const int levels[] = { AI_NONE, AI_EASY, AI_MEDIUM, AI_HARD };
     for (;;) {
-        int sel = runMenu("VÁN MỚI", items, 5);
+        int sel = runMenu(tr(S_TITLE_NEW_GAME), items, 5);
         if (sel < 0 || sel > 3) return;         /* Quay lai / Esc */
         int limit = timeMenu();
         if (limit == 0) continue;
@@ -595,8 +603,10 @@ static void newGameMenu(void) {
 }
 
 void mainMenu(void) {
-    static const char *const items[] = { "Ván mới", "Tải ván", "Lịch sử đấu", "Cài đặt", "Thoát" };
     for (;;) {
+        /* tao lai moi lan: ngon ngu co the vua doi trong Cai dat */
+        const char *const items[] = { tr(S_MENU_NEW), tr(S_MENU_LOAD), tr(S_MENU_HISTORY),
+                                      tr(S_MENU_SETTINGS), tr(S_MENU_EXIT) };
         switch (runMenu("C A R O", items, 5)) {
             case 0: newGameMenu(); break;
             case 1: loadFromMenu(); break;

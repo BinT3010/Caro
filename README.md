@@ -25,7 +25,7 @@ Chuong trinh can lien ket thu vien `winmm` (am thanh).
 - Luu y: khi chay tu Visual Studio, thu muc lam viec la thu muc du an, nen cac file luu van / lich su / cai dat nam o day.
 
 ### Tieng Viet co dau
-- Moi chu trong game la tieng Viet co dau. Chu duoc in bang `WriteConsoleW` (Unicode) nen khong phu thuoc bang ma
+- Mac dinh game la tieng Viet co dau (doi sang English trong Cai dat). Chu duoc in bang `WriteConsoleW` (Unicode) nen khong phu thuoc bang ma
   cua console; neu console dang dung font raster cu, game tu doi sang font **Consolas**.
 - File nguon luu dang **UTF-8**. gcc doc UTF-8 san; MSVC can co `/utf-8` (da them vao `build_msvc.bat` va `CMakeLists.txt`).
   Khi sua file trong Visual Studio / VS Code, giu ma hoa UTF-8 (khong doi sang Windows-1258).
@@ -98,6 +98,7 @@ Lich su nuoc di bat dau lai khi sang van moi hoac khi tai van tu file (chi lui d
 | Them | Di lai (phim U), chi khi choi voi may | `model.c` (undoMove), `control.c` (undoVsAi) |
 | Them | Gioi han thoi gian 5/10/15 phut moi ben (kieu co vua), het gio la thua | `model.c` (turnClock...), `control.c` (timeMenu, readKey), `view.c` (drawTime) |
 | Them | Toan bo giao dien bang **tieng Viet co dau**; ten nguoi choi go duoc tieng Viet (toi da 20 ky tu), luu dung vao file luu / lich su / cai dat (UTF-8) | `view.c` (printText), `utf8.c`, `control.c` (readText), `storage.c` (sanitizeName) |
+| Them | Chon ngon ngu **Tieng Viet / English** trong Cai dat (Enter hoac A/D), doi ngay, luu vao `caro_settings.cfg` (`lang=vi` / `lang=en`). Ten mac dinh ("Người chơi 1" <-> "Player 1") doi theo ngon ngu | `lang.c` (tr), `storage.c` (settingsSetLanguage), `control.c` (toggleLanguage) |
 
 ## Cau truc ma nguon
 - `model.c/h`: du lieu ban co + luat choi (khong dung Windows nen test duoc).
@@ -109,12 +110,15 @@ Lich su nuoc di bat dau lai khi sang van moi hoac khi tai van tu file (chi lui d
 - `ai.c/h`: may chon nuoc di (chi doc ban co, khong ve man hinh, khong dung Windows nen test duoc).
   Cham diem moi o trong theo cac "cua so" 5 o (tan cong + phong thu), muc Kho them chuoi nuoc 4 (VCF) va tim kiem 4 nuoc (alpha-beta).
 - `control.c/h`, `main.c`: luong game, doc phim, menu.
+- `lang.c/h`: **toan bo chu hien thi** cua 2 ngon ngu (Tieng Viet, English). Code goi `tr(S_...)` thay vi viet chu thang.
+  Them cau moi: them ma vao `enum StrId` trong `lang.h`, roi them ban dich cho CA HAI bang trong `lang.c`
+  (test logic bao loi neu thieu ban dich, neu `%d`/`%s` cua 2 ban khac nhau, hoac cau qua dai so voi man hinh).
 - `utf8.c/h`: xu ly chuoi UTF-8 (dem ky tu, cat/can le theo ky tu, Backspace, so sanh khong phan biet hoa/thuong ca chu co dau).
 - `tests/test_logic.c`: kiem thu phan logic (khong bat buoc de nop bai). Chay trong VS Code:
   `Terminal > Run Task... > test logic`, hoac trong cmd:
-  `gcc -std=c99 -Wall -Wextra -I. tests/test_logic.c model.c storage.c sound.c ai.c utf8.c -o test_logic.exe -lwinmm && test_logic.exe`
+  `gcc -std=c99 -Wall -Wextra -I. tests/test_logic.c model.c storage.c sound.c ai.c utf8.c lang.c -o test_logic.exe -lwinmm && test_logic.exe`
 - `tests/ui_test.c`: kiem thu **giao dien** tu dong - tu mo cua so game, bam phim nhu nguoi choi va doc lai
-  man hinh de kiem tra 75 diem (menu, danh co, thang, luu/tai, dau may, di lai, dong ho, het gio, chu co dau...).
+  man hinh de kiem tra 90 diem (menu, danh co, thang, luu/tai, dau may, di lai, dong ho, het gio, chu co dau, doi ngon ngu...).
   Chay trong thu muc rieng (huong dan o dau file); ket qua ghi vao `uitest.log`.
 
 ## Khac voi code cu
