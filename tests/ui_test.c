@@ -1,7 +1,7 @@
 /* Kiem thu GIAO DIEN CARO tu dong: chay caro.exe trong 1 cua so console rieng, "bam phim"
  * nhu nguoi choi that, doc lai man hinh (ky tu + mau) de kiem tra tung chuc nang:
  * menu, danh co, to sang, thang, choi lai, luu/tai, Esc, dau may De/Kho, di lai,
- * dong ho 5/10/15 phut, het gio (ca nguoi va may), History, Settings, Exit.
+ * dat ten khi bat dau van, dong ho 5/10/15 phut, het gio (ca nguoi va may), History, Settings, Exit.
  * Ket qua ghi vao uitest.log (co ban chup man hinh khi co loi).
  *
  * CHAY TRONG 1 THU MUC RIENG vi chuong trinh se ghi de caro_settings.cfg (tat am thanh),
@@ -167,6 +167,15 @@ int main(int argc, char **argv) {
     enter();
     waitFor("THOI GIAN", 2000);
     enter();
+    check("Man hinh DAT TEN: hoi ten X, mac dinh \"An\" (tu Settings)",
+          waitFor("DAT TEN NGUOI CHOI", 2000) && onScreen("Nguoi choi X (mac dinh \"An\")"));
+    enter();                                              /* Enter de trong -> giu ten An */
+    check("Enter de trong: giu ten X = An, chuyen sang hoi ten O (mac dinh \"Binh\")",
+          waitFor("Nguoi choi X: An", 1500) && onScreen("Nguoi choi O (mac dinh \"Binh\")"));
+    text("aN"); enter();                                  /* trung ten X (khac hoa thuong) */
+    check("Ten O trung ten X (khac hoa thuong) -> bao loi, hoi lai", waitFor("Ten bi trung", 1500)
+          && onScreen("Nguoi choi O (mac dinh \"Binh\")"));
+    enter();                                              /* giu ten Binh */
     check("Vao ban co: HUD 'Gio moi ben: 5 phut'", waitFor("Gio moi ben: 5 phut", 3000));
     dump("bat dau van 2 nguoi 5 phut");
     check("HUD: che do 2 nguoi, ten An / Binh, con lai 05:00", onScreen("Che do: 2 nguoi choi") && onScreen("[X] An")
@@ -253,13 +262,18 @@ int main(int argc, char **argv) {
     logp("\n=== B. DAU VOI MAY DE, 10 PHUT, DI LAI ===\n");
     enter(); waitFor("NEW GAME", 2000); down(1); enter();
     waitFor("THOI GIAN", 2000); down(1); enter();
+    check("Dau may: man hinh DAT TEN chi hoi ten nguoi (X)", waitFor("DAT TEN NGUOI CHOI", 2000)
+          && onScreen("Nguoi choi X (mac dinh \"An\")") && !seenNow("Nguoi choi O"));
+    text("  Lan "); enter();                              /* khoang trang hai dau bi cat */
+    check("Dat ten moi 'Lan' + hien doi thu 'May (De)'", waitFor("Nguoi choi X: Lan", 1500)
+          && waitFor("Doi thu       O: May (De)", 1500));
     check("Vao van: May (De), 10 phut, co dong 'U: di lai'", waitFor("Gio moi ben: 10 phut", 3000) && onScreen("[O] May (De)")
           && onScreen("Che do: dau voi may - De") && onScreen("U: di lai (da dung 0 lan)") && onScreen("Con lai: 10:00"));
     curR = curC = 0;
     playAt(5, 5);
     Sleep(1200); syncCursor();
     check("May tu danh 1 quan O sau nuoc cua nguoi", countMarks('X') == 1 && countMarks('O') == 1);
-    check("Lai den luot nguoi", onScreen("Luot choi: X (An)"));
+    check("Lai den luot nguoi (ten moi Lan)", onScreen("Luot choi: X (Lan)") && onScreen("[X] Lan"));
     dump("sau nuoc dau voi may De");
     key('u');
     check("U: xoa ca nuoc may + nuoc nguoi", waitFor("Da di lai", 1500) && countMarks('X') == 0 && countMarks('O') == 0);
@@ -284,7 +298,10 @@ int main(int argc, char **argv) {
     logp("\n=== C. DAU VOI MAY KHO, 15 PHUT ===\n");
     enter(); waitFor("NEW GAME", 2000); down(3); enter();
     waitFor("THOI GIAN", 2000); down(2); enter();
-    check("Vao van: May (Kho), 15 phut", waitFor("Gio moi ben: 15 phut", 4000) && waitFor("[O] May (Kho)", 2000) && waitFor("Con lai: 15:00", 2000));
+    check("Van moi: ten mac dinh lai la An (ten Lan chi ap dung van truoc)",
+          waitFor("DAT TEN NGUOI CHOI", 2000) && onScreen("Nguoi choi X (mac dinh \"An\")"));
+    esc();                                                /* Esc = giu ten mac dinh */
+    check("Vao van: May (Kho), 15 phut, Esc giu ten An", waitFor("Gio moi ben: 15 phut", 4000) && waitFor("[X] An", 2000) && waitFor("[O] May (Kho)", 2000) && waitFor("Con lai: 15:00", 2000));
     curR = curC = 0;
     int hx[][2] = { { 5, 5 }, { 5, 6 }, { 5, 7 } };
     int okAi = 1;
@@ -337,7 +354,7 @@ int main(int argc, char **argv) {
     dump("lich su");
     esc(); waitFor("C A R O", 2000);
     down(3); enter();
-    check("Settings hien am thanh TAT + ten An/Binh", waitFor("SETTINGS", 2000) && onScreen("Am thanh         : TAT")
+    check("Settings hien am thanh TAT + ten An (dat ten khi thi dau khong doi Settings)", waitFor("SETTINGS", 2000) && onScreen("Am thanh         : TAT")
           && onScreen("Ten nguoi choi 1 : An"));
     esc(); waitFor("C A R O", 2000);
     down(4); enter();
