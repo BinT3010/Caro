@@ -8,18 +8,18 @@ int aiLevel = AI_NONE;
 
 const char *aiName(int level) {
     switch (level) {
-        case AI_MEDIUM: return "May (Trung binh)";
-        case AI_HARD:   return "May (Kho)";
-        default:        return "May (De)";
+        case AI_MEDIUM: return "Máy (Trung bình)";
+        case AI_HARD:   return "Máy (Khó)";
+        default:        return "Máy (Dễ)";
     }
 }
 
 const char *aiModeText(int level) {
     switch (level) {
-        case AI_EASY:   return "Che do: dau voi may - De";
-        case AI_MEDIUM: return "Che do: dau voi may - Trung binh";
-        case AI_HARD:   return "Che do: dau voi may - Kho";
-        default:        return "Che do: 2 nguoi choi";
+        case AI_EASY:   return "Chế độ: đấu với máy - Dễ";
+        case AI_MEDIUM: return "Chế độ: đấu với máy - Trung bình";
+        case AI_HARD:   return "Chế độ: đấu với máy - Khó";
+        default:        return "Chế độ: 2 người chơi";
     }
 }
 

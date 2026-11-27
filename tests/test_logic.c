@@ -1,6 +1,6 @@
 /* Kiem thu phan logic (model + storage + sound), KHONG can man hinh console.
  * Bien dich va chay tu thu muc du an:
- *   gcc -std=c99 -Wall -Wextra -I. tests/test_logic.c model.c storage.c sound.c ai.c -o test_logic.exe -lwinmm
+ *   gcc -std=c99 -Wall -Wextra -I. tests/test_logic.c model.c storage.c sound.c ai.c utf8.c -o test_logic.exe -lwinmm
  *   test_logic.exe
  */
 #ifndef _CRT_SECURE_NO_WARNINGS
@@ -12,6 +12,7 @@
 #include "storage.h"
 #include "sound.h"
 #include "ai.h"
+#include "utf8.h"
 #include <stdlib.h>
 
 static int failed = 0, passed = 0;
@@ -136,16 +137,48 @@ static void testFileNames(void) {
 
     char d[NAME_LEN];
     sanitizeName(d, "  Lan|Anh  ");  CHECK(strcmp(d, "LanAnh") == 0);
-    sanitizeName(d, "   ");          CHECK(strcmp(d, "Nguoi choi") == 0);
+    sanitizeName(d, "   ");          CHECK(strcmp(d, "Người chơi") == 0);
     sanitizeName(d, "123456789012345678901234567890");
-    CHECK(strlen(d) == NAME_LEN - 1);
+    CHECK(strlen(d) == NAME_CHARS && utf8Width(d) == NAME_CHARS);
+    /* ten tieng Viet co dau: giu nguyen, cat theo KY TU (khong cat doi 1 chu) */
+    sanitizeName(d, "  Nguyễn Thị Ánh  ");  CHECK(strcmp(d, "Nguyễn Thị Ánh") == 0);
+    sanitizeName(d, "Đặng Thị Ngọc Ánh Dương Hồng");          /* 28 ky tu -> 20 */
+    CHECK(utf8Width(d) == NAME_CHARS && strcmp(d, "Đặng Thị Ngọc Ánh Dư") == 0);
+    sanitizeName(d, "ệệệệệệệệệệệệệệệệệệệệệệệệệ");            /* 25 chu 3 byte -> vua NAME_LEN */
+    CHECK(utf8Width(d) == NAME_CHARS && strlen(d) == NAME_LEN - 1);
+    sanitizeName(d, "A\xff\xc3" "B");                         /* byte sai UTF-8 bi bo */
+    CHECK(strcmp(d, "AB") == 0);
+    sanitizeName(d, "Le\xcc\x81");                            /* dau thanh roi (to hop) bi bo */
+    CHECK(strcmp(d, "Le") == 0);
+}
+
+static void testUtf8(void) {
+    printf("utf8 (tieng Viet co dau)\n");
+    char b[64];
+    CHECK(utf8Width("") == 0 && utf8Width("abc") == 3 && utf8Width("Việt Nam") == 8);
+    CHECK(utf8Width("ĐẶT TÊN NGƯỜI CHƠI") == 18);
+    utf8Fit(b, sizeof b, "Người chơi", 5, 0);  CHECK(strcmp(b, "Người") == 0);
+    utf8Fit(b, sizeof b, "Hòa", 6, 1);         CHECK(strcmp(b, "Hòa   ") == 0 && utf8Width(b) == 6);
+    utf8Fit(b, 4, "ệệ", 5, 0);                 CHECK(strcmp(b, "ệ") == 0);       /* het cho: khong cat doi chu */
+    strcpy(b, "Lân");  utf8PopLast(b);         CHECK(strcmp(b, "Lâ") == 0);
+    utf8PopLast(b); utf8PopLast(b); utf8PopLast(b); CHECK(b[0] == '\0');
+    CHECK(utf8EqualNoCase("ÂN", "ân") && utf8EqualNoCase("ĐỨC", "đức") && utf8EqualNoCase("Ơ Ư", "ơ ư"));
+    CHECK(!utf8EqualNoCase("An", "Ân") && !utf8EqualNoCase("An", "Anh"));
+    char e[4]; unsigned cp;
+    for (unsigned c = 1; c < 0x10000; c++) {                   /* ma hoa roi giai ma lai dung */
+        if (c >= 0xD800 && c <= 0xDFFF) continue;
+        int n = utf8Encode(c, e);
+        char z[5]; memcpy(z, e, (size_t)n); z[n] = '\0';
+        if (utf8Decode(z, &cp) != n || cp != c) { CHECK(0); break; }
+    }
+    CHECK(utf8Decode("\xc0\x80", &cp) == 1 && cp == UTF8_BAD);  /* ma hoa thua */
 }
 
 static void testPlayerNames(void) {
     printf("setPlayerName\n");
     resetSession();
-    snprintf(session.name[0], NAME_LEN, "Nguoi choi 1");
-    snprintf(session.name[1], NAME_LEN, "Nguoi choi 2");
+    snprintf(session.name[0], NAME_LEN, "Người chơi 1");
+    snprintf(session.name[1], NAME_LEN, "Người chơi 2");
     CHECK(setPlayerName(0, "  Lan  ") == NAME_OK && strcmp(session.name[0], "Lan") == 0);
     CHECK(setPlayerName(1, "Minh") == NAME_OK && strcmp(session.name[1], "Minh") == 0);
     CHECK(setPlayerName(0, "") == NAME_KEPT && strcmp(session.name[0], "Lan") == 0);     /* bo trong */
@@ -156,16 +189,46 @@ static void testPlayerNames(void) {
     CHECK(setPlayerName(0, "Lan") == NAME_OK);                                           /* tu doi lai ten minh thi duoc */
     CHECK(setPlayerName(0, "A|B") == NAME_OK && strcmp(session.name[0], "AB") == 0);     /* ky tu '|' bi bo */
     CHECK(setPlayerName(0, "123456789012345678901234567890") == NAME_OK
-          && strlen(session.name[0]) == NAME_LEN - 1);                                   /* cat 20 ky tu */
+          && utf8Width(session.name[0]) == NAME_CHARS);                                  /* cat 20 ky tu */
+    CHECK(setPlayerName(0, "Ân") == NAME_OK && setPlayerName(1, "ân") == NAME_DUPLICATE); /* trung, chu co dau */
+    CHECK(setPlayerName(1, "ÂN") == NAME_DUPLICATE && setPlayerName(1, "An") == NAME_OK); /* "An" khac "Ân" */
     resetSession();                                                                      /* ten khong ro ri sang phien sau */
     CHECK(strcmp(session.name[0], settings.name[0]) == 0 && strcmp(session.name[1], settings.name[1]) == 0);
+}
+
+/* Lich su + cai dat giu nguyen ten tieng Viet (ca ten 20 chu, moi chu 3 byte). */
+static void testHistorySettings(void) {
+    printf("lich su / cai dat voi ten co dau\n");
+    const char *longName = "ệệệệệệệệệệệệệệệệệệệệ";           /* 20 ky tu = 60 byte */
+    resetSession();
+    resetData();
+    snprintf(session.name[0], NAME_LEN, "%s", longName);
+    snprintf(session.name[1], NAME_LEN, "%s", aiName(AI_HARD));
+    rename(HISTORY_FILE, "__hist_backup.txt");
+    CHECK(historyAppend(RES_X_WIN) == SAVE_OK);
+    CHECK(historyLoad() == 1 && strcmp(history[0].name[0], longName) == 0
+          && strcmp(history[0].name[1], "Máy (Khó)") == 0);
+    remove(HISTORY_FILE);
+    rename("__hist_backup.txt", HISTORY_FILE);
+
+    Settings keep = settings;
+    rename(SETTINGS_FILE, "__cfg_backup.cfg");
+    snprintf(settings.name[0], NAME_LEN, "Trần Thị Lan");
+    snprintf(settings.name[1], NAME_LEN, "%s", longName);
+    CHECK(settingsSave() == SAVE_OK);
+    memset(settings.name, 0, sizeof settings.name);
+    settingsLoad();
+    CHECK(strcmp(settings.name[0], "Trần Thị Lan") == 0 && strcmp(settings.name[1], longName) == 0);
+    remove(SETTINGS_FILE);
+    rename("__cfg_backup.cfg", SETTINGS_FILE);
+    settings = keep;
 }
 
 static void testSaveLoad(void) {
     printf("saveGame / loadGame\n");
     const char *file = "__test_tmp.caro";
     resetSession();
-    strcpy(session.name[0], "Nguoi X co dau cach");
+    strcpy(session.name[0], "Nguyễn Văn Đức");
     strcpy(session.name[1], "O");
     session.wins[0] = 3; session.draws = 2;
     resetData();
@@ -178,7 +241,7 @@ static void testSaveLoad(void) {
     resetSession();
     resetData();
     CHECK(loadGame(file) == SAVE_OK);
-    CHECK(strcmp(session.name[0], "Nguoi X co dau cach") == 0 && strcmp(session.name[1], "O") == 0);
+    CHECK(strcmp(session.name[0], "Nguyễn Văn Đức") == 0 && strcmp(session.name[1], "O") == 0);   /* ten co dau qua file */
     CHECK(session.wins[0] == 3 && session.draws == 2 && session.games == 5);
     CHECK(chessBoard[3][4].mark == -1 && chessBoard[4][4].mark == 1 && totalMoves == 3);
     CHECK(turn == -1 && currX == 7 && currY == 8 && clockElapsed() == 125);
@@ -480,6 +543,8 @@ int main(void) {
     testLoadState();
     testFileNames();
     testPlayerNames();
+    testUtf8();
+    testHistorySettings();
     testSaveLoad();
     testSound();
     testAI();

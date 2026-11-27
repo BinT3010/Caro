@@ -11,7 +11,7 @@
 #include "control.h"
 
 int main(void) {
-    SetConsoleTitleA("CARO");
+    SetConsoleTitleW(L"Cờ Caro");
     srand((unsigned)time(NULL));               /* AI chon ngau nhien giua cac nuoc ngang diem */
     fixConsole();                              /* co dinh kich thuoc cua so */
     resizeConsole(SCREEN_W, SCREEN_H);

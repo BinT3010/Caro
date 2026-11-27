@@ -9,7 +9,8 @@
 #define LEFT 3          /* Toa do trai man hinh ban co */
 #define TOP 1           /* Toa do tren man hinh ban co */
 #define WIN_LEN 5       /* So quan lien tiep de thang */
-#define NAME_LEN 21     /* Ten nguoi choi: toi da 20 ky tu + '\0' */
+#define NAME_CHARS 20   /* Ten nguoi choi: toi da 20 ky tu (co the co dau) */
+#define NAME_LEN (NAME_CHARS * 3 + 1)   /* UTF-8: moi chu tieng Viet toi da 3 byte, + '\0' */
 
 /* ---- Ket qua van co (TestBoard) ---- */
 #define RES_O_WIN (-1)  /* nguoi choi 2 (O) thang */

@@ -30,6 +30,10 @@
 #define GAME_LIST_Y (TOP + 15)
 
 /* ---- co ban ---- */
+/* Moi chu in ra man hinh phai di qua printText/printAt (UTF-8 -> WriteConsoleW) de
+ * tieng Viet co dau hien dung; KHONG dung printf truc tiep. */
+void printText(const char *utf8);
+void printAt(int x, int y, const char *utf8);
 void goToXY(int x, int y);
 void setColor(int textColor, int bgColor);
 void clearScreen(void);

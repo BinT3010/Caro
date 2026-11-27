@@ -8,6 +8,7 @@
 #include <time.h>
 #include "storage.h"
 #include "ai.h"
+#include "utf8.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -28,21 +29,26 @@ static int readLine(FILE *f, char *buf, int cap) {
     return 1;
 }
 
+/* Ten hop le (UTF-8, co the co dau): giu ky tu in duoc; bo ky tu dieu khien, '|' (dau phan
+ * cach trong file lich su), dau thanh roi (to hop), byte sai UTF-8; cat khoang trang hai dau;
+ * toi da NAME_CHARS ky tu. Ten rong -> "Người chơi". */
 void sanitizeName(char *dst, const char *src) {
     char tmp[NAME_LEN];
-    int n = 0;
-    for (; *src && n < NAME_LEN - 1; src++) {
-        unsigned char c = (unsigned char)*src;
-        if (c >= 32 && c < 127 && c != '|') tmp[n++] = (char)c;
+    size_t n = 0;
+    int chars = 0;
+    unsigned cp;
+    for (int k; chars < NAME_CHARS && (k = utf8Decode(src, &cp)) > 0; src += k) {
+        if (cp < 32 || cp == 127 || cp == '|' || cp == UTF8_BAD || (cp >= 0x80 && cp < 0xA0)
+            || (cp >= 0x300 && cp <= 0x36F) || cp > 0xFFFF)
+            continue;
+        if (chars == 0 && cp == ' ') continue;          /* cat khoang trang dau */
+        n += (size_t)utf8Encode(cp, tmp + n);
+        chars++;
     }
+    while (n > 0 && tmp[n - 1] == ' ') n--;             /* cat khoang trang cuoi */
     tmp[n] = '\0';
-    int a = 0;                              /* cat khoang trang hai dau */
-    while (tmp[a] == ' ') a++;
-    int b = n;
-    while (b > a && tmp[b - 1] == ' ') b--;
-    tmp[b] = '\0';
-    if (b - a <= 0) snprintf(dst, NAME_LEN, "Nguoi choi");
-    else snprintf(dst, NAME_LEN, "%s", tmp + a);
+    if (n == 0) snprintf(dst, NAME_LEN, "Người chơi");
+    else snprintf(dst, NAME_LEN, "%s", tmp);
 }
 
 /* Dat ten cho nguoi choi idx (0 = X, 1 = O) trong van dau hien tai.
@@ -55,10 +61,7 @@ int setPlayerName(int idx, const char *typed) {
     while (*p == ' ') p++;
     if (*p == '\0') return NAME_KEPT;
     sanitizeName(clean, p);
-    const char *other = session.name[1 - idx];
-    size_t i = 0;
-    while (clean[i] && other[i] && tolower((unsigned char)clean[i]) == tolower((unsigned char)other[i])) i++;
-    if (clean[i] == '\0' && other[i] == '\0') return NAME_DUPLICATE;
+    if (utf8EqualNoCase(clean, session.name[1 - idx])) return NAME_DUPLICATE;   /* "ÂN" == "ân" */
     snprintf(session.name[idx], NAME_LEN, "%s", clean);
     return NAME_OK;
 }
@@ -267,7 +270,7 @@ int historyLoad(void) {
     while (readLine(f, line, sizeof line)) {
         HistoryEntry e;
         memset(&e, 0, sizeof e);
-        if (sscanf(line, "%16[^|]|%d|%20[^|]|%20[^|]|%d|%d", e.when, &e.result,
+        if (sscanf(line, "%16[^|]|%d|%60[^|]|%60[^|]|%d|%d", e.when, &e.result,
                    e.name[0], e.name[1], &e.moves, &e.seconds) != 6)
             continue;                                   /* bo qua dong hong */
         if (e.result != RES_X_WIN && e.result != RES_O_WIN && e.result != RES_DRAW) continue;
